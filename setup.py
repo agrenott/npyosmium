@@ -131,10 +131,10 @@ class CMakeBuild(build_ext):
 
 versions = get_versions()
 
-if sys.version_info < (3,7):
-    raise RuntimeError("Python 3.7 or larger required.")
+if sys.version_info < (3,8):
+    raise RuntimeError("Python 3.8 or larger required.")
 
-with open('README.rst', 'r') as descfile:
+with open('README.md', 'r') as descfile:
     long_description = descfile.read()
 
 setup(
@@ -155,7 +155,6 @@ setup(
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: BSD License",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
@@ -171,7 +170,7 @@ setup(
     package_data = { 'npyosmium': ['py.typed', '*.pyi',
                                 'replication/_replication.pyi',
                                 'osm/_osm.pyi']},
-    python_requires = ">=3.7",
+    python_requires = ">=3.8",
     install_requires = ['requests'],
     cmdclass=dict(build_ext=CMakeBuild, sdist=Pyosmium_sdist),
     zip_safe=False,
