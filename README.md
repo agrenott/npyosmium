@@ -9,10 +9,11 @@ library, a library for working with OpenStreetMap data in a fast and flexible
 manner.
 
 [![Github Actions Build Status](https://github.com/agrenott/npyosmium/workflows/CI/badge.svg)](https://github.com/agrenott/nyosmium/actions?query=workflow%3ACI)
+[![PyPI version](https://badge.fury.io/py/npyosmium.svg)](https://badge.fury.io/py/npyosmium)
 
 ## Installation
 
-npyosmium works with Python >= 3.7. Pypy is known to not work.
+npyosmium works with Python >= 3.8. Pypy is known to not work.
 
 ### Using Pip
 
@@ -55,6 +56,12 @@ Get the latest versions of libosmium, protozero and pybind11. It is
 recommended that you put them in a subdirectory `contrib`. You can also
 set custom locations with `LIBOSMIUM_PREFIX`, `PROTOZERO_PREFIX` and
 `PYBIND11_PREFIX` respectively.
+
+```
+git clone --quiet --depth 1 https://github.com/osmcode/libosmium.git contrib/libosmium
+git clone --quiet --depth 1 https://github.com/mapbox/protozero.git contrib/protozero
+git clone --quiet https://github.com/pybind/pybind11.git contrib/pybind11
+```
 
 To use a custom boost installation, set `BOOST_PREFIX`.
 
@@ -121,4 +128,4 @@ npyosmium is available under the BSD 2-Clause License. See LICENSE.TXT.
 
 ## Authors
 
-Sarah Hoffmann (lonvia@denofr.de)
+Sarah Hoffmann (lonvia@denofr.de), Aurélien Grenotton (agrenott@gmail.com)
