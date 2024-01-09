@@ -76,6 +76,16 @@ To compile and install the bindings, run
 
     pip install [--user] .
 
+#### Using conda
+
+(Tested on MacOS)
+```
+conda create -p .venv -c conda-forge  python=3.9 clang cmake boost
+conda activate .venv/
+pip install build pytest shapely
+# Resume cloning and build as described earlier
+```
+
 
 ## Examples
 
