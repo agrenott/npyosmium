@@ -41,7 +41,7 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.16.2
         env:
-           CIBW_ARCHS: native
+           CIBW_ARCHS: auto
            # Disable python 3.7 due to https://github.com/pypa/manylinux/pull/1532
            CIBW_SKIP: "pp* *musllinux* cp37-*"
            CIBW_TEST_REQUIRES: pytest shapely
