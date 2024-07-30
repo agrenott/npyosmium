@@ -70,7 +70,11 @@ To compile the bindings during development, you can use
 On Debian/Ubuntu-like systems, install `python3-build`, then
 run:
 
-    python3 -m build -w
+```
+sudo apt install build-essential cmake libsparsehash-dev libexpat1-dev libboost-dev zlib1g-dev libbz2-dev liblz4-dev
+pip install build
+python3 -m build -w
+```
 
 To compile and install the bindings, run
 
