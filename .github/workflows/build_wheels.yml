@@ -1,4 +1,4 @@
-name: Build wheels & publish
+name: Build wheels
 
 on:
   push:
@@ -10,11 +10,12 @@ on:
 
 jobs:
   build_wheels:
-    name: Build wheels on ${{ matrix.os }}
+    name: Build ${{ matrix.cibw_build }} wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-22.04, windows-2019, macos-11]
+        os: [ubuntu-22.04, windows-2019, macos-12]
+        cibw_build: ["cp38-*", "cp39-*", "cp310-*", "cp311-*", "cp312-*"]
 
     steps:
       - uses: actions/checkout@v3
@@ -42,12 +43,14 @@ jobs:
         uses: pypa/cibuildwheel@v2.19.2
         env:
            CIBW_ARCHS: native
+           CIBW_BUILD: ${{ matrix.cibw_build }}
            # Disable python 3.7 due to https://github.com/pypa/manylinux/pull/1532
            CIBW_SKIP: "pp* *musllinux* cp37-*"
            CIBW_TEST_REQUIRES: pytest pytest-httpserver shapely
            CIBW_TEST_REQUIRES_LINUX: urllib3<2.0 pytest pytest-httpserver shapely
            CIBW_TEST_COMMAND: pytest {project}/test
            CIBW_BUILD_FRONTEND: build
+           CIBW_ENVIRONMENT: "MACOSX_DEPLOYMENT_TARGET=12.0"
            CIBW_BEFORE_BUILD_LINUX: yum install -y sparsehash-devel expat-devel boost-devel zlib-devel bzip2-devel lz4-devel
            CIBW_BEFORE_BUILD_MACOS: brew install boost google-sparsehash
            CIBW_BEFORE_BUILD_WINDOWS: vcpkg install bzip2:x64-windows expat:x64-windows zlib:x64-windows boost-variant:x64-windows boost-iterator:x64-windows lz4:x86-windows
