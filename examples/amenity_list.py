@@ -1,6 +1,10 @@
 """
-Extract all objects with an amenity tag from an osm file and list them
+Extract objects with an amenity tag from an osm file and list them
 with their name and position.
+
+Points and areas will be processed, unclosed ways will be skipped.
+
+Points and areas will be processed, unclosed ways will be skipped.
 
 This example shows how geometries from npyosmium objects can be imported
 into shapely using the WKBFactory.
@@ -18,22 +22,20 @@ class AmenityListHandler(o.SimpleHandler):
         print("%f %f %-15s %s" % (lon, lat, tags['amenity'], name))
 
     def node(self, n):
-        if 'amenity' in n.tags:
-            self.print_amenity(n.tags, n.location.lon, n.location.lat)
+        self.print_amenity(n.tags, n.location.lon, n.location.lat)
 
     def area(self, a):
-        if 'amenity' in a.tags:
-            wkb = wkbfab.create_multipolygon(a)
-            poly = wkblib.loads(wkb, hex=True)
-            centroid = poly.representative_point()
-            self.print_amenity(a.tags, centroid.x, centroid.y)
+        wkb = wkbfab.create_multipolygon(a)
+        poly = wkblib.loads(wkb, hex=True)
+        centroid = poly.representative_point()
+        self.print_amenity(a.tags, centroid.x, centroid.y)
 
 
 def main(osmfile):
 
     handler = AmenityListHandler()
 
-    handler.apply_file(osmfile)
+    handler.apply_file(osmfile, filters=[o.filter.KeyFilter('amenity')])
 
     return 0
 

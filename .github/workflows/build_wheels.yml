@@ -1,4 +1,4 @@
-name: Build wheels & publish
+name: Build wheels
 
 on:
   push:
@@ -10,51 +10,67 @@ on:
 
 jobs:
   build_wheels:
-    name: Build wheels on ${{ matrix.os }}
+    name: Build ${{ matrix.cibw_build }} wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-22.04, windows-2019, macos-11]
+        os: [ubuntu-22.04, windows-2019, macos-12, macos-14]
+        cibw_build: ["cp38-*", "cp39-*", "cp310-*", "cp311-*", "cp312-*"]
+        exclude:
+          - os: macos-14
+            cibw_build: "cp38-*"
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           repository: pybind/pybind11
-          ref: v2.10.3
+          ref: v2.11.1
           path: contrib/pybind11
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           repository: mapbox/protozero
           ref: v1.7.1
           path: contrib/protozero
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           repository: osmcode/libosmium
-          ref: v2.19.0
+          ref: v2.20.0
           path: contrib/libosmium
 
+      - uses: mad9000/actions-find-and-replace-string@5
+        # Escaping '*'...
+        id: articafact_name
+        with:
+          source: npyosmium-wheels-${{ matrix.os }}-${{ matrix.cibw_build }}
+          find: '*'
+          replace: '_'
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.2
+        uses: pypa/cibuildwheel@v2.19.2
         env:
            CIBW_ARCHS: native
+           CIBW_BUILD: ${{ matrix.cibw_build }}
            # Disable python 3.7 due to https://github.com/pypa/manylinux/pull/1532
            CIBW_SKIP: "pp* *musllinux* cp37-*"
-           CIBW_TEST_REQUIRES: pytest shapely
+           CIBW_TEST_REQUIRES: pytest pytest-httpserver shapely
+           CIBW_TEST_REQUIRES_LINUX: urllib3<2.0 pytest pytest-httpserver shapely
            CIBW_TEST_COMMAND: pytest {project}/test
            CIBW_BUILD_FRONTEND: build
            CIBW_BEFORE_BUILD_LINUX: yum install -y sparsehash-devel expat-devel boost-devel zlib-devel bzip2-devel lz4-devel
-           CIBW_BEFORE_BUILD_MACOS: brew install boost google-sparsehash
+           # Can't use system/brew lz4 as they do not honor MACOSX_DEPLOYMENT_TARGET 
+           # See https://cibuildwheel.pypa.io/en/stable/faq/#missing-dependencies
+           CIBW_BEFORE_BUILD_MACOS: brew install boost google-sparsehash; brew uninstall --ignore-dependencies lz4; wget https://github.com/lz4/lz4/releases/download/v1.10.0/lz4-1.10.0.tar.gz; tar xvfz lz4-1.10.0.tar.gz; cd lz4-1.10.0; make; sudo make install
            CIBW_BEFORE_BUILD_WINDOWS: vcpkg install bzip2:x64-windows expat:x64-windows zlib:x64-windows boost-variant:x64-windows boost-iterator:x64-windows lz4:x86-windows
            CIBW_ENVIRONMENT_WINDOWS: 'CMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"'
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: ${{ steps.articafact_name.outputs.value }}
           path: ./wheelhouse/*.whl
 
   pypi-publish:
@@ -68,9 +84,9 @@ jobs:
     permissions:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
-          name: wheels
+          pattern: npyosmium-wheels-*
           path: dist
 
       - name: Publish package distributions to PyPI

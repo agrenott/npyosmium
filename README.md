@@ -52,9 +52,22 @@ npyosmium has the following dependencies:
 
 ### Compiling from Source
 
-Get the latest versions of libosmium, protozero and pybind11. It is
-recommended that you put them in a subdirectory `contrib`. You can also
-set custom locations with `LIBOSMIUM_PREFIX`, `PROTOZERO_PREFIX` and
+Get the latest versions of libosmium, protozero and pybind11 source code. It is
+recommended that you put them in a subdirectory `contrib`. 
+
+You can do this by cloning their repositories into that location.
+
+Following commands should achieve this:
+
+```
+mkdir contrib
+cd contrib
+git clone https://github.com/osmcode/libosmium.git
+git clone https://github.com/mapbox/protozero.git
+git clone https://github.com/pybind/pybind11.git
+```
+
+You can also set custom locations with `LIBOSMIUM_PREFIX`, `PROTOZERO_PREFIX` and
 `PYBIND11_PREFIX` respectively.
 
 ```
@@ -70,7 +83,11 @@ To compile the bindings during development, you can use
 On Debian/Ubuntu-like systems, install `python3-build`, then
 run:
 
-    python3 -m build -w
+```
+sudo apt install build-essential cmake libsparsehash-dev libexpat1-dev libboost-dev zlib1g-dev libbz2-dev liblz4-dev
+pip install build
+python3 -m build -w
+```
 
 To compile and install the bindings, run
 
@@ -85,13 +102,15 @@ They are mostly ports of the examples in Libosmium and osmium-contrib.
 
 ## Testing
 
-There is a small test suite in the test directory. This provides regression
+There is a small test suite in the test directory. This provides unit
 test for the python bindings, it is not meant to be a test suite for Libosmium.
 
-You'll need the Python `pytest` module. On Debian/Ubuntu install the package
-`python3-pytest`.
+Testing requires `pytest` and `pytest-httpserver`. On Debian/Ubuntu install
+the dependencies with:
 
-The suite can be run with:
+    sudo apt-get install python3-pytest python3-pytest-httpserver
+
+The test suite can be run with:
 
     pytest test
 

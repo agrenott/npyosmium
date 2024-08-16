@@ -4,20 +4,12 @@ Search for pubs in an osm file and list their names.
 import npyosmium
 import sys
 
-class NamesHandler(npyosmium.SimpleHandler):
-
-    def output_pubs(self, tags):
-        if tags.get('amenity') == 'pub' and 'name' in tags:
-            print(tags['name'])
-
-    def node(self, n):
-        self.output_pubs(n.tags)
-
-    def way(self, w):
-        self.output_pubs(w.tags)
-
 def main(osmfile):
-    NamesHandler().apply_file(osmfile)
+    for obj in npyosmium.FileProcessor(osmfile)\
+                     .with_filter(npyosmium.filter.KeyFilter('amenity'))\
+                     .with_filter(npyosmium.filter.KeyFilter('name')):
+        if obj.tags['amenity'] == 'pub':
+            print(obj.tags['name'])
 
     return 0
 
