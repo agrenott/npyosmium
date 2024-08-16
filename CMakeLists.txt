@@ -76,14 +76,25 @@ set_module_output(_osm npyosmium/osm)
 pybind11_add_module(_osmium
                     lib/osmium.cc
                     lib/merge_input_reader.cc
+                    lib/node_location_handler.cc
                     lib/simple_writer.cc
-                    lib/write_handler.cc)
+                    lib/write_handler.cc
+                    lib/file_iterator.cc)
 set_module_output(_osmium npyosmium)
 pybind11_add_module(_replication lib/replication.cc)
 set_module_output(_replication npyosmium/replication)
+pybind11_add_module(_area lib/area.cc)
+set_module_output(_area npyosmium/area)
+pybind11_add_module(_filter
+                    lib/filter.cc
+                    lib/empty_tag_filter.cc
+                    lib/key_filter.cc)
+set_module_output(_filter npyosmium/filter)
 
 target_link_libraries(_osmium PRIVATE ${OSMIUM_LIBRARIES})
 target_link_libraries(_replication PRIVATE ${OSMIUM_LIBRARIES})
+target_link_libraries(_area PRIVATE ${OSMIUM_LIBRARIES})
+target_link_libraries(_filter PRIVATE ${OSMIUM_LIBRARIES})
 
 # workaround for https://github.com/pybind/pybind11/issues/1272
 if(APPLE)

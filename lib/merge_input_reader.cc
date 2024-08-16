@@ -2,7 +2,7 @@
  *
  * This file is part of pyosmium. (https://osmcode.org/pyosmium/)
  *
- * Copyright (C) 2023 Sarah Hoffmann <lonvia@denofr.de> and others.
+ * Copyright (C) 2024 Sarah Hoffmann <lonvia@denofr.de> and others.
  * For a full list of authors see the git log.
  */
 #include <pybind11/pybind11.h>
@@ -21,8 +21,8 @@
 #include <osmium/object_pointer_collection.hpp>
 #include <osmium/visitor.hpp>
 
-#include "base_handler.h"
 #include "osmium_module.h"
+#include "handler_chain.h"
 
 namespace py = pybind11;
 
@@ -60,8 +60,9 @@ namespace {
 class MergeInputReader
 {
 public:
-    void apply(BaseHandler& handler, std::string const &idx, bool simplify)
+    void apply(py::args args, std::string const &idx, bool simplify)
     {
+        pyosmium::HandlerChain handler{args};
         if (idx.empty())
             apply_without_location(handler, simplify);
         else
@@ -127,13 +128,13 @@ public:
     }
 
 private:
-    void apply_without_location(BaseHandler& handler, bool simplify)
+    void apply_without_location(pyosmium::HandlerChain& handler, bool simplify)
     {
         if (simplify) {
             objects.sort(osmium::object_order_type_id_reverse_version());
             osmium::item_type prev_type = osmium::item_type::undefined;
             osmium::object_id_type prev_id = 0;
-            for (const auto &item: objects) {
+            for (auto &item: objects) {
                 if (item.type() != prev_type || item.id() != prev_id) {
                     prev_type = item.type();
                     prev_id = item.id();
@@ -142,14 +143,14 @@ private:
             }
         } else {
             objects.sort(osmium::object_order_type_id_version());
-            osmium::apply(objects.cbegin(), objects.cend(), handler);
+            osmium::apply(objects.begin(), objects.end(), handler);
         }
 
         objects = osmium::ObjectPointerCollection();
         changes.clear();
     }
 
-    void apply_with_location(BaseHandler& handler, std::string const &idx,
+    void apply_with_location(pyosmium::HandlerChain& handler, std::string const &idx,
                              bool simplify)
     {
         using Index_fab =
@@ -198,7 +199,9 @@ private:
     osmium::ObjectPointerCollection objects;
 };
 
-}
+} // namespace
+
+namespace pyosmium {
 
 void init_merge_input_reader(py::module &m)
 {
@@ -207,7 +210,7 @@ void init_merge_input_reader(py::module &m)
         "deduplicates the data before applying it to a handler.")
         .def(py::init<>())
         .def("apply", &MergeInputReader::apply,
-             py::arg("handler"), py::arg("idx")="", py::arg("simplify")=true,
+             py::arg("idx")="", py::arg("simplify")=true,
              "Apply collected data to a handler. The data will be sorted first. "
              "If `simplify` is true (default) then duplicates will be eliminated "
              "and only the newest version of each object kept. If `idx` is given "
@@ -239,3 +242,5 @@ void init_merge_input_reader(py::module &m)
              "safely discarded after the function has been called.")
     ;
 };
+
+} // namespace

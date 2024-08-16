@@ -2,7 +2,7 @@
  *
  * This file is part of pyosmium. (https://osmcode.org/pyosmium/)
  *
- * Copyright (C) 2023 Sarah Hoffmann <lonvia@denofr.de> and others.
+ * Copyright (C) 2024 Sarah Hoffmann <lonvia@denofr.de> and others.
  * For a full list of authors see the git log.
  */
 #include <pybind11/pybind11.h>
@@ -45,7 +45,7 @@ public:
 
         buffer.rollback();
 
-        auto const *inode = pyosmium::try_cast<COSMNode>(o);
+        auto const *inode = pyosmium::try_cast<pyosmium::COSMNode>(o);
         if (inode) {
             buffer.add_item(*inode->get());
         } else {
@@ -58,7 +58,7 @@ public:
             }
 
             set_common_attributes(o, builder);
-            set_taglist<COSMNode>(o, builder);
+            set_taglist<pyosmium::COSMNode>(o, builder);
         }
 
         flush_buffer();
@@ -100,7 +100,7 @@ public:
 
         buffer.rollback();
 
-        auto const *iobj = pyosmium::try_cast<COSMWay>(o);
+        auto const *iobj = pyosmium::try_cast<pyosmium::COSMWay>(o);
         if (iobj) {
             buffer.add_item(*iobj->get());
         } else {
@@ -108,7 +108,7 @@ public:
 
             set_common_attributes(o, builder);
             set_nodelist(o, &builder);
-            set_taglist<COSMWay>(o, builder);
+            set_taglist<pyosmium::COSMWay>(o, builder);
         }
 
         flush_buffer();
@@ -122,7 +122,7 @@ public:
 
         buffer.rollback();
 
-        auto const *iobj = pyosmium::try_cast<COSMRelation>(o);
+        auto const *iobj = pyosmium::try_cast<pyosmium::COSMRelation>(o);
         if (iobj) {
             buffer.add_item(*iobj->get());
         } else {
@@ -130,7 +130,7 @@ public:
 
             set_common_attributes(o, builder);
             set_memberlist(o, &builder);
-            set_taglist<COSMRelation>(o, builder);
+            set_taglist<pyosmium::COSMRelation>(o, builder);
         }
 
         flush_buffer();
@@ -271,7 +271,7 @@ private:
         }
 
         // original memberlist
-        auto const &iobj = pyosmium::try_cast<COSMRelation>(o);
+        auto const &iobj = pyosmium::try_cast<pyosmium::COSMRelation>(o);
         if (iobj) {
             auto const &oml = iobj->get()->members();
             if (oml.size() > 0)
@@ -329,7 +329,9 @@ private:
     size_t buffer_size;
 };
 
-}
+} // namespace
+
+namespace pyosmium {
 
 void init_simple_writer(pybind11::module &m)
 {
@@ -371,3 +373,5 @@ void init_simple_writer(pybind11::module &m)
              "that the buffer memory can be freed.")
     ;
 }
+
+} // namespace

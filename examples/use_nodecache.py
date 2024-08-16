@@ -1,19 +1,21 @@
+"""
+Iterate over all ways (and ways only) using node cache to obtain geometries
+"""
 import npyosmium as o
 import sys
 
-class WayHandler(o.SimpleHandler):
+class WayHandler:
 
     def __init__(self, idx):
-        super(WayHandler, self).__init__()
         self.idx = idx
 
     def way(self, w):
         for n in w.nodes:
-            loc = idx.get(n.ref)
+            loc = idx.get(n.ref) # note that cache is used here
         print("%d %s" % (w.id, len(w.nodes)))
 
 if len(sys.argv) != 3:
-    print("Usage: python create_nodecache.py <osm file> <node cache>")
+    print("Usage: python use_nodecache.py <osm file> <node cache>")
     exit()
 
 reader = o.io.Reader(sys.argv[1], o.osm.osm_entity_bits.WAY)

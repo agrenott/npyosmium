@@ -2,7 +2,7 @@
  *
  * This file is part of pyosmium. (https://osmcode.org/pyosmium/)
  *
- * Copyright (C) 2023 Sarah Hoffmann <lonvia@denofr.de> and others.
+ * Copyright (C) 2024 Sarah Hoffmann <lonvia@denofr.de> and others.
  * For a full list of authors see the git log.
  */
 #include <pybind11/pybind11.h>
@@ -15,7 +15,7 @@
 
 namespace {
 
-class WriteHandler : public BaseHandler
+class WriteHandler : public pyosmium::BaseHandler
 {
     enum { BUFFER_WRAP = 4096 };
 
@@ -36,30 +36,31 @@ public:
     virtual ~WriteHandler()
     { close(); }
 
-    osmium::osm_entity_bits::type enabled_callbacks() override
-    { return osmium::osm_entity_bits::all; }
-
-    void node(const osmium::Node* o) override
+    bool node(const osmium::Node* o) override
     {
         buffer.add_item(*o);
         flush_buffer();
+        return false;
     }
 
-    void way(const osmium::Way* o) override
+    bool way(osmium::Way* o) override
     {
         buffer.add_item(*o);
         flush_buffer();
+        return false;
     }
 
-    void relation(const osmium::Relation* o) override
+    bool relation(const osmium::Relation* o) override
     {
         buffer.add_item(*o);
         flush_buffer();
+        return false;
     }
 
-    void changeset(const osmium::Changeset*) override {}
-
-    void area(const osmium::Area*) override {}
+    void flush() override
+    {
+        flush_buffer(true);
+    }
 
     void close()
     {
@@ -71,11 +72,11 @@ public:
     }
 
 private:
-    void flush_buffer()
+    void flush_buffer(bool force = false)
     {
         buffer.commit();
 
-        if (buffer.committed() > buffer.capacity() - BUFFER_WRAP) {
+        if (force || buffer.committed() > buffer.capacity() - BUFFER_WRAP) {
             osmium::memory::Buffer new_buffer(buffer.capacity(), osmium::memory::Buffer::auto_grow::yes);
             using std::swap;
             swap(buffer, new_buffer);
@@ -87,9 +88,11 @@ private:
     osmium::memory::Buffer buffer;
 };
 
-}
+} // namespace
 
 namespace py = pybind11;
+
+namespace pyosmium {
 
 void init_write_handler(pybind11::module &m)
 {
@@ -116,3 +119,5 @@ void init_write_handler(pybind11::module &m)
              "that the buffer memory can be freed.")
     ;
 }
+
+} // namespace

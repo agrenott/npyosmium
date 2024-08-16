@@ -39,6 +39,26 @@ class DanglingReferenceBase:
             str(obj)
             repr(obj)
 
+    def test_keep_reference_generator(self):
+        for obj in o.FileProcessor(TEST_DIR / 'example-test.osc').with_areas():
+            if obj.type_str() == 'n' and self.node is not None:
+                self.node(obj)
+            elif obj.type_str() == 'w' and self.way is not None:
+                self.way(obj)
+            elif obj.type_str() == 'r' and self.relation is not None:
+                self.relation(obj)
+            elif obj.type_str() == 'a' and self.area is not None:
+                self.area(obj)
+
+        assert self.refkeeper
+
+        for obj, func in self.refkeeper:
+            with pytest.raises(RuntimeError, match="removed OSM object"):
+                func(obj)
+            # str() and repr() must not throw errors
+            str(obj)
+            repr(obj)
+
 
 class TestKeepNodeRef(DanglingReferenceBase):
 
@@ -140,6 +160,23 @@ class NotADanglingReferenceBase:
         for obj, func in self.refkeeper:
             func(obj)
 
+    def test_keep_reference_generator(self):
+        for obj in o.FileProcessor(TEST_DIR / 'example-test.pbf').with_areas():
+            if obj.is_node() and self.node is not None:
+                self.node(obj)
+            elif obj.is_way() and self.way is not None:
+                self.way(obj)
+            elif obj.is_relation() and self.relation is not None:
+                self.relation(obj)
+            elif obj.is_area() and self.area is not None:
+                self.area(obj)
+
+        assert self.refkeeper
+
+        for obj, func in self.refkeeper:
+            func(obj)
+
+
 class TestKeepLocation(NotADanglingReferenceBase):
 
     def node(self, n):
@@ -153,6 +190,6 @@ class TestKeepNode(NotADanglingReferenceBase):
 
 class TestKeepMember(NotADanglingReferenceBase):
 
-    def member(self, n):
-        for m in n.members:
-            self.keep(m, lambda m: t.ref)
+    def relation(self, r):
+        for m in r.members:
+            self.keep(m, lambda m: m.ref)
