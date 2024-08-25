@@ -171,8 +171,7 @@ setup(
         ],
 
     ext_modules=[CMakeExtension('cmake_example')],
-    packages = ['npyosmium', 'npyosmium/osm', 'npyosmium/replication', 'npyosmium/area',
-                'npyosmium/filter'],
+    packages = ['npyosmium', 'npyosmium/osm', 'npyosmium/replication'],
     package_dir = {'' : 'src'},
     package_data = { 'npyosmium': ['py.typed', '*.pyi',
                                 'replication/_replication.pyi',

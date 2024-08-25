@@ -24,18 +24,21 @@ class NodeLocationsForWays : public pyosmium::BaseHandler
 public:
     NodeLocationsForWays(LocationTable &idx)
     : handler(idx)
-    {}
-
-    bool node(const osmium::Node *o) override
     {
-        handler.node(*o);
+        m_enabled_for = osmium::osm_entity_bits::node
+                        | osmium::osm_entity_bits::way;
+    }
+
+    bool node(pyosmium::PyOSMNode &o) override
+    {
+        handler.node(*(o.get()));
         return false;
     }
 
-    bool way(osmium::Way *o) override
+    bool way(pyosmium::PyOSMWay &o) override
     {
         if (apply_nodes_to_ways) {
-            handler.way(*o);
+            handler.way(*(o.get()));
         }
         return false;
     }
@@ -64,9 +67,7 @@ void init_node_location_handler(py::module &m)
         .def("ignore_errors", &NodeLocationsForWays::ignore_errors)
         .def_property("apply_nodes_to_ways",
                      &NodeLocationsForWays::get_apply_nodes_to_ways,
-                     &NodeLocationsForWays::set_apply_nodes_to_ways,
-                     "When set to false, locations are only collected "
-                     "and not automatically applied to way nodes.")
+                     &NodeLocationsForWays::set_apply_nodes_to_ways)
     ;
 
 }

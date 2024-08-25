@@ -14,13 +14,62 @@
 #include <osmium/index/index.hpp>
 #include <osmium/visitor.hpp>
 
+#include "osm_base_objects.h"
 #include "base_handler.h"
+#include "base_filter.h"
 #include "osmium_module.h"
 #include "python_handler.h"
 #include "handler_chain.h"
 #include "buffer_iterator.h"
 
 namespace py = pybind11;
+
+void pyosmium::apply_item(osmium::OSMEntity &obj, pyosmium::BaseHandler &handler)
+{
+    switch (obj.type()) {
+        case osmium::item_type::node:
+        {
+            PyOSMNode node{static_cast<osmium::Node *>(&obj)};
+            handler.node(node);
+            break;
+        }
+        case osmium::item_type::way:
+        {
+            PyOSMWay way{static_cast<osmium::Way *>(&obj)};
+            handler.way(way);
+            break;
+        }
+        case osmium::item_type::relation:
+        {
+            PyOSMRelation rel{static_cast<osmium::Relation *>(&obj)};
+            handler.relation(rel);
+            break;
+        }
+        case osmium::item_type::area:
+        {
+            PyOSMArea area{static_cast<osmium::Area *>(&obj)};
+            handler.area(area);
+            break;
+        }
+        case osmium::item_type::changeset:
+        {
+            PyOSMChangeset chg{static_cast<osmium::Changeset *>(&obj)};
+            handler.changeset(chg);
+            break;
+        }
+    }
+}
+
+void pyosmium::apply(osmium::io::Reader &reader, pyosmium::BaseHandler &handler)
+{
+    while (auto buffer = reader.read()) {
+        for (auto &obj : buffer.select<osmium::OSMEntity>()) {
+            pyosmium::apply_item(obj, handler);
+        }
+    }
+    handler.flush();
+}
+
 
 PYBIND11_MODULE(_osmium, m) {
     py::register_exception<osmium::invalid_location>(m, "InvalidLocationError");
@@ -32,54 +81,44 @@ PYBIND11_MODULE(_osmium, m) {
         }
     });
 
-    m.def("apply", [](osmium::io::Reader &rd, pyosmium::BaseHandler &h)
-                   { py::gil_scoped_release release; osmium::apply(rd, h); },
-          py::arg("reader"), py::arg("handler"),
-          "Apply a single handler.");
+    m.def("apply", &pyosmium::apply,
+          py::arg("reader"), py::arg("handler"));
     m.def("apply", [](osmium::io::Reader &rd, py::args args)
                      {
                          pyosmium::HandlerChain handler{args};
-                         {
-                             py::gil_scoped_release release;
-                             osmium::apply(rd, handler);
-                         }
+                         pyosmium::apply(rd, handler);
                      },
-          py::arg("reader"),
-          "Apply a chain of handlers.");
+          py::arg("reader"));
     m.def("apply", [](std::string fn, pyosmium::BaseHandler &h)
                    {
-                       py::gil_scoped_release release;
                        osmium::io::Reader rd{fn};
-                       osmium::apply(rd, h);
+                       pyosmium::apply(rd, h);
                    },
-          py::arg("filename"), py::arg("handler"),
-          "Apply a single handler.");
+          py::arg("filename"), py::arg("handler"));
     m.def("apply", [](std::string fn, py::args args)
                      {
                          pyosmium::HandlerChain handler{args};
-                         {
-                             py::gil_scoped_release release;
-                             osmium::io::Reader rd{fn};
-                             osmium::apply(rd, handler);
-                         }
+                         osmium::io::Reader rd{fn};
+                         pyosmium::apply(rd, handler);
                      },
-          py::arg("filename"),
-          "Apply a chain of handlers.");
+          py::arg("filename"));
 
     py::class_<pyosmium::BaseHandler>(m, "BaseHandler");
+    py::class_<pyosmium::BaseFilter, pyosmium::BaseHandler>(m, "BaseFilter")
+        .def("enable_for", &pyosmium::BaseFilter::enable_for,
+             py::arg("entities"))
+    ;
 
-    py::class_<pyosmium::BufferIterator>(m, "BufferIterator",
-    "Iterator interface for reading from a queue of buffers.")
+    py::class_<pyosmium::BufferIterator>(m, "BufferIterator")
     .def(py::init<py::args>())
     .def("__bool__", [](pyosmium::BufferIterator const &it) { return !it.empty(); })
     .def("__iter__", [](py::object const &self) { return self; })
-    .def("__next__", &pyosmium::BufferIterator::next,
-         "Get the next OSM object from the buffer or raise an StopIteration.")
+    .def("__next__", &pyosmium::BufferIterator::next)
     ;
 
     pyosmium::init_merge_input_reader(m);
-    pyosmium::init_write_handler(m);
     pyosmium::init_simple_writer(m);
     pyosmium::init_node_location_handler(m);
     pyosmium::init_osm_file_iterator(m);
+    pyosmium::init_id_tracker(m);
 };

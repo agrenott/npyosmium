@@ -15,8 +15,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, windows-2019, macos-12, macos-14]
+        os: [ubuntu-22.04, windows-2019, macos-13, macos-14]
         cibw_build: ["cp38-*", "cp39-*", "cp310-*", "cp311-*", "cp312-*"]
+        include:
+          - os: macos-13
+            deployment_target: "10.13" # minimal version required by libosmium
         exclude:
           - os: macos-14
             cibw_build: "cp38-*"
@@ -62,6 +65,7 @@ jobs:
            CIBW_TEST_COMMAND: pytest {project}/test
            CIBW_BUILD_FRONTEND: build
            CIBW_BEFORE_BUILD_LINUX: yum install -y sparsehash-devel expat-devel boost-devel zlib-devel bzip2-devel lz4-devel
+           CIBW_ENVIRONMENT_MACOS: "MACOSX_DEPLOYMENT_TARGET=${{ matrix.deployment_target || '10.9' }}"
            # Can't use system/brew lz4 as they do not honor MACOSX_DEPLOYMENT_TARGET 
            # See https://cibuildwheel.pypa.io/en/stable/faq/#missing-dependencies
            CIBW_BEFORE_BUILD_MACOS: brew install boost google-sparsehash; brew uninstall --ignore-dependencies lz4; wget https://github.com/lz4/lz4/releases/download/v1.10.0/lz4-1.10.0.tar.gz; tar xvfz lz4-1.10.0.tar.gz; cd lz4-1.10.0; make; sudo make install

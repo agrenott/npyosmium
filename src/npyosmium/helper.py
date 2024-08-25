@@ -4,10 +4,17 @@
 #
 # Copyright (C) 2024 Sarah Hoffmann <lonvia@denofr.de> and others.
 # For a full list of authors see the git log.
-from typing import Optional, Callable, TypeVar
+from typing import Optional, Callable, TypeVar, TYPE_CHECKING
 
-from npyosmium.simple_handler import SimpleHandler
-from npyosmium.osm import Node, Way, Relation, Area, Changeset
+from .simple_handler import SimpleHandler
+from .osm import Node, Way, Relation, Area, Changeset
+from .index import create_map
+from ._osmium import SimpleWriter, NodeLocationsForWays
+
+from ._osmium import MergeInputReader as MergeInputReader
+
+if TYPE_CHECKING:
+    from ._osmium import HandlerLike
 
 T = TypeVar('T')
 HandlerFunc = Optional[Callable[[T], None]]
@@ -38,3 +45,26 @@ def make_simple_handler(node: HandlerFunc[Node] = None,
         setattr(__HandlerWithCallbacks, "changeset", staticmethod(changeset))
 
     return __HandlerWithCallbacks()
+
+
+# WriteHandler no longer exists. SimpleWriter can now function as a handler.
+class WriteHandler(SimpleWriter):
+    """ (Deprecated) Handler function that writes all data directly to a file.
+
+        This is now simply an alias for SimpleWriter. Please refer to its
+        documentation.
+    """
+
+    def __init__(self, filename: str, bufsz: int=4096*1024, filetype: str="") -> None:
+        super().__init__(filename, bufsz=bufsz, filetype=filetype)
+
+
+def _merge_apply(self: MergeInputReader, *handlers: 'HandlerLike', idx: str = '', simplify: bool = True) -> None:
+    if idx:
+        lh = NodeLocationsForWays(create_map(idx))
+        lh.ignore_errors()
+        self._apply_internal(lh, *handlers, simplify=simplify)
+
+    self._apply_internal(*handlers, simplify=simplify)
+
+MergeInputReader.apply = _merge_apply # type: ignore[method-assign]
