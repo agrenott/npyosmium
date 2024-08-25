@@ -7,3 +7,5 @@ include lib/*.cc
 include doc/*.rst
 include examples/*py
 include test/*py
+graft contrib
+prune contrib/*/.git

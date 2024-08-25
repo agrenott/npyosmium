@@ -40,7 +40,7 @@ if os.path.exists(build_dir):
 sys.path.insert(0, os.path.normpath(os.path.join(os.path.abspath('.'), '../tools')))
 
 try:
-    from npyosmium.version import npyosmium_major, npyosmium_release
+    from npyosmium.version import npyosmium_release
 except ImportError:
     print("""
         Compiled version of npyosmium not found, please build npyosmium for Python {}.{}
@@ -83,7 +83,7 @@ copyright = '2015-2020, Sarah Hoffmann'
 # built documents.
 #
 # The short X.Y version.
-version = npyosmium_major
+version = npyosmium_release
 # The full version, including alpha/beta/rc tags.
 release = npyosmium_release
 

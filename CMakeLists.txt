@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.0)
-project(npyosmium VERSION 3.7.0)
+
+# Extract version from version.py
+file(READ "src/npyosmium/version.py" ver)
+string(REGEX MATCH "npyosmium_release = '([0-9]*)'" _ ${ver})
+set(npyosmium_version ${CMAKE_MATCH_1})
+
+project(npyosmium VERSION ${npyosmium_version})
 
 option(WITH_LZ4 "Build with lz4 support for PBF files" ON)
 

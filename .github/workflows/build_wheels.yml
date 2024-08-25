@@ -9,6 +9,22 @@ on:
     types: [published]
 
 jobs:
+  make_sdist:
+    name: Make SDist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/fetch_deps
+
+      - name: Build SDist
+        run: pipx run build --sdist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cibw-sdist
+          path: dist/*.tar.gz
+
   build_wheels:
     name: Build ${{ matrix.cibw_build }} wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -27,29 +43,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/checkout@v4
-        with:
-          repository: pybind/pybind11
-          ref: v2.11.1
-          path: contrib/pybind11
-
-      - uses: actions/checkout@v4
-        with:
-          repository: mapbox/protozero
-          ref: v1.7.1
-          path: contrib/protozero
-
-      - uses: actions/checkout@v4
-        with:
-          repository: osmcode/libosmium
-          ref: v2.20.0
-          path: contrib/libosmium
+      - uses: ./.github/actions/fetch_deps
 
       - uses: mad9000/actions-find-and-replace-string@5
         # Escaping '*'...
         id: articafact_name
         with:
-          source: npyosmium-wheels-${{ matrix.os }}-${{ matrix.cibw_build }}
+          source: cibw-wheels-${{ matrix.os }}-${{ matrix.cibw_build }}
           find: '*'
           replace: '_'
 
@@ -81,7 +81,9 @@ jobs:
     name: Upload release to PyPI
     if: github.event_name == 'release' && github.event.action == 'published'  # only publish to PyPI on github release publication
     runs-on: ubuntu-latest
-    needs: build_wheels
+    needs: 
+      - make_sdist
+      - build_wheels
     environment:
       name: pypi
       url: https://pypi.org/p/npyosmium
@@ -90,7 +92,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: npyosmium-wheels-*
+          pattern: cibw-*
           path: dist
           merge-multiple: true
 

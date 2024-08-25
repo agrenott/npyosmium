@@ -9,47 +9,12 @@ import re
 import sys
 import platform
 import subprocess
-import urllib.request
-import tarfile
-from pathlib import Path
 
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
-from setuptools.command.sdist import sdist as orig_sdist
 from packaging.version import Version
 
 BASEDIR = os.path.split(os.path.abspath(__file__))[0]
-
-class Pyosmium_sdist(orig_sdist):
-
-    contrib = (
-        ('libosmium', 'https://github.com/osmcode/libosmium/archive/v{}.tar.gz'),
-        ('protozero', 'https://github.com/mapbox/protozero/archive/v{}.tar.gz'),
-        ('pybind11', 'https://github.com/pybind/pybind11/archive/v{}.tar.gz'),
-    )
-
-    def make_release_tree(self, base_dir, files):
-        orig_sdist.make_release_tree(self, base_dir, files)
-
-        # add additional dependecies in the required version
-        for name, tar_src in self.contrib:
-            tarball = tar_src.format(versions[name + '_version'])
-            print("Downloading and adding {} sources from {}".format(name, tarball))
-            base = Path("-".join((name, versions[name + '_version'])))
-            dest = Path(base_dir) / "contrib" / name
-            with urllib.request.urlopen(tarball) as reader:
-                with tarfile.open(fileobj=reader, mode='r|gz') as tf:
-                    for member in tf:
-                        fname = Path(member.name)
-                        if not fname.is_absolute():
-                            fname = fname.relative_to(base)
-                            if member.isdir():
-                                (dest / fname).mkdir(parents=True, exist_ok=True)
-                            elif member.isfile():
-                                with tf.extractfile(member) as memberfile:
-                                    with (dest / fname).open('wb') as of:
-                                        of.write(memberfile.read())
-
 
 
 def get_versions():
@@ -181,6 +146,6 @@ setup(
     extras_require = {
         'tests': ['pytest', 'pytest-httpserver', 'werkzeug'],
     },
-    cmdclass=dict(build_ext=CMakeBuild, sdist=Pyosmium_sdist),
+    cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
 )

@@ -8,14 +8,5 @@
 Version information.
 """
 
-# the major version
-npyosmium_major = '3.7'
 # current release (Pip version)
 npyosmium_release = '3.7.0'
-
-# libosmium version shipped with the Pip release
-libosmium_version = '2.20.0'
-# protozero version shipped with the Pip release
-protozero_version = '1.7.1'
-# pybind11 version shipped with the Pip release
-pybind11_version = '2.11.1'
