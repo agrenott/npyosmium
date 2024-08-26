@@ -52,29 +52,16 @@ npyosmium has the following dependencies:
 
 ### Compiling from Source
 
-Get the latest versions of libosmium, protozero and pybind11 source code. It is
-recommended that you put them in a subdirectory `contrib`. 
-
-You can do this by cloning their repositories into that location.
-
-Following commands should achieve this:
+For libosmium, protozero and pybind11 source code, npyosmium uses git submodules in `contrib/`.
 
 ```
-mkdir contrib
-cd contrib
-git clone https://github.com/osmcode/libosmium.git
-git clone https://github.com/mapbox/protozero.git
-git clone https://github.com/pybind/pybind11.git
+git submodule init
+git submodule update
 ```
 
 You can also set custom locations with `LIBOSMIUM_PREFIX`, `PROTOZERO_PREFIX` and
 `PYBIND11_PREFIX` respectively.
 
-```
-git clone --quiet --depth 1 https://github.com/osmcode/libosmium.git contrib/libosmium
-git clone --quiet --depth 1 https://github.com/mapbox/protozero.git contrib/protozero
-git clone --quiet https://github.com/pybind/pybind11.git contrib/pybind11
-```
 
 To use a custom boost installation, set `BOOST_PREFIX`.
 
@@ -93,6 +80,15 @@ To compile and install the bindings, run
 
     pip install [--user] .
 
+#### Using conda
+
+(Tested on MacOS)
+```
+conda create -p .venv -c conda-forge  python=3.9 clang cmake boost
+conda activate .venv/
+pip install build pytest shapely
+# Resume cloning and build as described earlier
+```
 
 ## Examples
 

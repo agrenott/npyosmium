@@ -1,0 +1,9 @@
+[submodule "contrib/pybind11"]
+	path = contrib/pybind11
+	url = https://github.com/pybind/pybind11
+[submodule "contrib/protozero"]
+	path = contrib/protozero
+	url = https://github.com/mapbox/protozero
+[submodule "contrib/libosmium"]
+	path = contrib/libosmium
+	url = https://github.com/osmcode/libosmium

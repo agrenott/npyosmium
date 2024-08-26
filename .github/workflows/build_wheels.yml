@@ -14,8 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: ./.github/actions/fetch_deps
+        with:
+          submodules: true # we don't want submodules of libosmium
 
       - name: Build SDist
         run: pipx run build --sdist
@@ -42,8 +42,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - uses: ./.github/actions/fetch_deps
+        with:
+          submodules: true # we don't want submodules of libosmium
 
       - uses: mad9000/actions-find-and-replace-string@5
         # Escaping '*'...
