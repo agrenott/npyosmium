@@ -10,10 +10,6 @@ message(STATUS "Module path: ${CMAKE_MODULE_PATH}")
 set(PYBIND11_FINDPYTHON ON)
 find_package(pybind11 CONFIG REQUIRED)
 
-if(SKBUILD_STATE STREQUAL "sdist")
-#######################################################################
-# source dist collection
-#
 
 include(FetchContent)
 
@@ -32,10 +28,8 @@ FetchContent_Declare(protozero
 
 FetchContent_MakeAvailable(libosmium protozero)
 
-else()
-#######################################################################
-# wheel build
-#
+# Real build
+if(NOT SKBUILD_STATE STREQUAL "sdist")
 
 set(OSMIUM_COMPONENTS io pbf xml)
 
@@ -114,5 +108,4 @@ if(APPLE)
     set_target_properties(filter PROPERTIES CXX_VISIBILITY_PRESET "default")
 endif()
 
-
-endif()
+endif() # Not SDist

@@ -13,7 +13,7 @@ manner.
 
 ## Installation
 
-npyosmium works with Python >= 3.8. Pypy is known to not work.
+npyosmium works with Python >= 3.9. Pypy is known to not work.
 
 ### Using Pip
 

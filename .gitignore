@@ -8,3 +8,4 @@ npyosmium.egg-info
 *.so
 .ipynb_checkpoints
 docs/data/out
+contrib/

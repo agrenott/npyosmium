@@ -32,7 +32,7 @@ cookies to the server and will save received cookies to the jar file.
 import http.cookiejar
 import logging
 import sys
-from argparse import ArgumentParser, ArgumentTypeError, RawDescriptionHelpFormatter
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from textwrap import dedent as msgfmt
 from typing import List
 

@@ -566,13 +566,6 @@ class Relation(OSMObject['cosm.COSMRelation']):
     @property
     def members(self) -> RelationMemberList:
         """(read-only) Ordered list of relation members.
-           See :py:class:`npyosmium.osm.RelationMemberList`.
-        """
-        return self._members
-
-    @property
-    def members(self) -> RelationMemberList:
-        """(read-only) Ordered list of relation members.
            See [`npyosmium.osm.RelationMemberList`][].
         """
         return self._members

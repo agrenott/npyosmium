@@ -4,11 +4,10 @@
 #
 # Copyright (C) 2024 Sarah Hoffmann <lonvia@denofr.de> and others.
 # For a full list of authors see the git log.
-from typing import Any, Union
 import os
-from typing_extensions import Buffer
+from typing import Any, Union
 
-from typing import overload
+from typing_extensions import Buffer
 
 from .osm import Box, osm_entity_bits
 
