@@ -4,9 +4,10 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "npyosmium"
-version = "4.1.0"
+version = "4.2.0"
 description = "Python bindings for libosmium, the data processing library for OSM data, with numpy interface"
 requires-python = ">=3.8"
+readme = "README.md"
 license = {text = 'BSD-2-Clause'}
 authors = [
     {name = "Sarah Hoffmann", email = "lonvia@denofr.de"}
@@ -36,6 +37,12 @@ dependencies = [
     "requests"
     ]
 
+[project.urls]
+Homepage = "https://github.com/agrenott/npyosmium"
+# Documentation = "https://docs.osmcode.org/pyosmium/latest/"
+Repository = "https://github.com/agrenott/npyosmium"
+Issues = "https://github.com/agrenott/npyosmium/issues"
+
 [project.optional-dependencies]
 tests = [
     'pytest',
@@ -52,7 +59,7 @@ docs = [
     'mkdocs-autorefs',
     'mkdocs-gen-files',
     'mkdocs-jupyter',
-    'argparse-manpage '
+    'argparse-manpage'
     ]
 
 [project.scripts]
@@ -96,3 +103,7 @@ include = ['/src/**/*.py',
            '/contrib/protozero/LICENSE',
            '/contrib/protozero/README.md',
            ]
+
+[tool.pytest]
+log_cli = false
+markers = ["thread_unsafe: marks tests that are not thread safe","iterations(1): number of iterations for the test"]

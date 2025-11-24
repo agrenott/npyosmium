@@ -12,7 +12,7 @@ from typing import NamedTuple, Optional
 from npyosmium.io import Reader as oreader
 from npyosmium.osm import NOTHING
 
-LOG = logging.getLogger('pyosmium')
+LOG = logging.getLogger('npyosmium')
 
 
 class ReplicationHeader(NamedTuple):
