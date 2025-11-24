@@ -5,14 +5,13 @@
 # Copyright (C) 2024 Sarah Hoffmann <lonvia@denofr.de> and others.
 # For a full list of authors see the git log.
 import os
-import re
-import sys
 import platform
+import re
 import subprocess
+import sys
 
-from setuptools import setup, Extension
+from setuptools import Extension, setup
 from setuptools.command.build_ext import build_ext
-from packaging.version import Version
 
 BASEDIR = os.path.split(os.path.abspath(__file__))[0]
 
@@ -45,11 +44,6 @@ class CMakeBuild(build_ext):
             raise RuntimeError("CMake must be installed to build the following extensions: " +
                                ", ".join(e.name for e in self.extensions))
 
-        if platform.system() == "Windows":
-            cmake_version = Version(re.search(r'version\s*([\d.]+)', out.decode()).group(1))
-            if cmake_version < Version('3.1.0'):
-                raise RuntimeError("CMake >= 3.1.0 is required on Windows")
-
         for ext in self.extensions:
             self.build_extension(ext)
 
@@ -68,7 +62,8 @@ class CMakeBuild(build_ext):
             build_args += ['--', '/m']
         else:
             cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
-            build_args += ['--', '-j2']
+            nbr_cpus = os.cpu_count() or 2 # fallback if None is returned
+            build_args += ['--', f'-j{nbr_cpus}']
 
         env = os.environ.copy()
         env['CXXFLAGS'] = '{} -DVERSION_INFO=\\"{}\\"'.format(env.get('CXXFLAGS', ''),
@@ -95,6 +90,8 @@ class CMakeBuild(build_ext):
         if 'CMAKE_CXX_STANDARD' in env:
             cmake_args += ['-DCMAKE_CXX_STANDARD={}'.format(env['CMAKE_CXX_STANDARD'])]
 
+        cmake_args += [f"-DWITH_LZ4={env.get('CMAKE_WITH_LZ4', 'ON')}"]
+
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
         subprocess.check_call(['cmake', ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env)
@@ -102,50 +99,10 @@ class CMakeBuild(build_ext):
 
 versions = get_versions()
 
-if sys.version_info < (3,8):
-    raise RuntimeError("Python 3.8 or larger required.")
-
-with open('README.md', 'r') as descfile:
-    long_description = descfile.read()
 
 setup(
-    name='npyosmium',
-    version=versions['npyosmium_release'],
-    description='Python bindings for libosmium, the data processing library for OSM data, with numpy interface',
-    long_description=long_description,
-    author='Sarah Hoffmann',
-    author_email='lonvia@denofr.de',
-    maintainer='Aurélien Grenotton',
-    maintainer_email='agrenott@gmail.com',
-    download_url='https://github.com/agrenott/npyosmium',
-    url='https://github.com/agrenott/npyosmium',
-    keywords=["OSM", "OpenStreetMap", "Osmium"],
-    license='BSD',
     scripts=['tools/npyosmium-get-changes', 'tools/npyosmium-up-to-date'],
-    classifiers = [
-        "Development Status :: 4 - Beta",
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: BSD License",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.11",
-        "Programming Language :: Python :: 3.12",
-        "Programming Language :: Python :: Implementation :: CPython",
-        "Programming Language :: C++",
-        ],
-
     ext_modules=[CMakeExtension('cmake_example')],
-    packages = ['npyosmium', 'npyosmium/osm', 'npyosmium/replication'],
-    package_dir = {'' : 'src'},
-    package_data = { 'npyosmium': ['py.typed', '*.pyi',
-                                'replication/_replication.pyi',
-                                'osm/_osm.pyi']},
-    python_requires = ">=3.8",
-    install_requires = ['requests'],
-    extras_require = {
-        'tests': ['pytest', 'pytest-httpserver', 'werkzeug'],
-    },
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
 )

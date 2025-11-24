@@ -26,16 +26,19 @@ jobs:
           path: dist/*.tar.gz
 
   build_wheels:
-    name: Build ${{ matrix.cibw_build }} wheels on ${{ matrix.os }}
+    name: Build ${{ matrix.cibw_build }} wheels on ${{ matrix.os }} for ${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, windows-2019, macos-13, macos-14]
+        arch: [native]
         cibw_build: ["cp38-*", "cp39-*", "cp310-*", "cp311-*", "cp312-*"]
         include:
           - os: macos-13
             deployment_target: "10.13" # minimal version required by libosmium
+          - os: ubuntu-20.04
+            arch: aarch64
         exclude:
           - os: macos-14
             cibw_build: "cp38-*"
@@ -49,28 +52,34 @@ jobs:
         # Escaping '*'...
         id: articafact_name
         with:
-          source: cibw-wheels-${{ matrix.os }}-${{ matrix.cibw_build }}
+          source: cibw-wheels-${{ matrix.os }}-${{ matrix.cibw_build }}-${{ matrix.arch }}
           find: '*'
           replace: '_'
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        if: ${{ matrix.arch == 'aarch64' }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.8' #TODO: is this needed?
+
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.19.2
+        uses: pypa/cibuildwheel@v2.21.1
         env:
            CIBW_ARCHS: native
            CIBW_BUILD: ${{ matrix.cibw_build }}
            # Disable python 3.7 due to https://github.com/pypa/manylinux/pull/1532
-           CIBW_SKIP: "pp* *musllinux* cp37-*"
+           CIBW_SKIP: "pp* *musllinux* cp37-* cp38-*linux_aarch64"
            CIBW_TEST_REQUIRES: pytest pytest-httpserver shapely
            CIBW_TEST_REQUIRES_LINUX: urllib3<2.0 pytest pytest-httpserver shapely
            CIBW_TEST_COMMAND: pytest {project}/test
            CIBW_BUILD_FRONTEND: build
-           CIBW_BEFORE_BUILD_LINUX: yum install -y sparsehash-devel expat-devel boost-devel zlib-devel bzip2-devel lz4-devel
-           CIBW_ENVIRONMENT_MACOS: "MACOSX_DEPLOYMENT_TARGET=${{ matrix.deployment_target || '10.9' }}"
-           # Can't use system/brew lz4 as they do not honor MACOSX_DEPLOYMENT_TARGET 
-           # See https://cibuildwheel.pypa.io/en/stable/faq/#missing-dependencies
-           CIBW_BEFORE_BUILD_MACOS: brew install boost google-sparsehash; brew uninstall --ignore-dependencies lz4; wget https://github.com/lz4/lz4/releases/download/v1.10.0/lz4-1.10.0.tar.gz; tar xvfz lz4-1.10.0.tar.gz; cd lz4-1.10.0; make; sudo make install
+           CIBW_BEFORE_BUILD_LINUX: yum install -y expat-devel boost-devel zlib-devel bzip2-devel lz4-devel
+           CIBW_BEFORE_BUILD_MACOS: brew install boost
            CIBW_BEFORE_BUILD_WINDOWS: vcpkg install bzip2:x64-windows expat:x64-windows zlib:x64-windows boost-variant:x64-windows boost-iterator:x64-windows lz4:x86-windows
            CIBW_ENVIRONMENT_WINDOWS: 'CMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"'
+           CIBW_ENVIRONMENT_MACOS: CMAKE_WITH_LZ4=OFF MACOSX_DEPLOYMENT_TARGET=11.0
 
       - uses: actions/upload-artifact@v4
         with:

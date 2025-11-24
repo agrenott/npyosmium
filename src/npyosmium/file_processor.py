@@ -4,12 +4,14 @@
 #
 # Copyright (C) 2024 Sarah Hoffmann <lonvia@denofr.de> and others.
 # For a full list of authors see the git log.
-from typing import Iterable, Iterator, Tuple, Any, Union, Optional, List
-from pathlib import Path
+import os
+from typing import Any, Iterable, Iterator, List, Optional, Tuple, Union
 
 import npyosmium
 from npyosmium.index import LocationTable
+from npyosmium.io import File, FileBuffer
 from npyosmium.osm.types import OSMEntity
+
 
 class FileProcessor:
     """ A processor that reads an OSM file in a streaming fashion,
@@ -17,7 +19,7 @@ class FileProcessor:
         returning the data via an iterator.
     """
 
-    def __init__(self, indata: Union[npyosmium.io.File, npyosmium.io.FileBuffer, str, Path],
+    def __init__(self, indata: Union[File, FileBuffer, str, 'os.PathLike[str]'],
                  entities: npyosmium.osm.osm_entity_bits=npyosmium.osm.ALL) -> None:
         """ Initialise a new file processor for the given input source _indata_.
             This may either be a filename, an instance of [File](IO.md#npyosmium.io.File)
@@ -29,12 +31,7 @@ class FileProcessor:
             including the location and area processors. You usually should not
             be restricting objects, when using those.
             """
-        if isinstance(indata, (npyosmium.io.File, npyosmium.io.FileBuffer)):
-            self._file = indata
-        elif isinstance(indata, (str, Path)):
-            self._file = npyosmium.io.File(str(indata))
-        else:
-            raise TypeError("File must be an npyosmium.io.File, npyosmium.io.FileBuffer, str or Path")
+        self._file = indata
         self._entities = entities
         self._node_store: Optional[LocationTable] = None
         self._area_handler: Optional[npyosmium.area.AreaManager] = None
@@ -71,7 +68,7 @@ class FileProcessor:
             small to medium-sized files. For large files you may need to
             switch to a disk-storage based implementation because the cache
             can become quite large. See the section on
-            [location storage in the user manual](../user_manual/03-Working-with-Geometries.ipynb#location-storage)
+            [location storage in the user manual][location-storage]
             for more information.
         """
         if not (self._entities & npyosmium.osm.NODE):

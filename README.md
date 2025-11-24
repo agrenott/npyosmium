@@ -41,14 +41,15 @@ npyosmium has the following dependencies:
  * [libosmium](https://github.com/osmcode/libosmium) >= 2.16.0
  * [protozero](https://github.com/mapbox/protozero)
  * [cmake](https://cmake.org/)
- * [Pybind11](https://github.com/pybind/pybind11) >= 2.2
+ * [Pybind11](https://github.com/pybind/pybind11) >= 2.7
  * [expat](https://libexpat.github.io/)
  * [libz](https://www.zlib.net/)
  * [libbz2](https://www.sourceware.org/bzip2/)
  * [Boost](https://www.boost.org/) variant and iterator >= 1.41
  * [Python Requests](https://docs.python-requests.org/en/master/)
  * Python setuptools
- * a recent C++ compiler (Clang 3.4+, GCC 4.8+)
+ * [Requests](https://requests.readthedocs.io)
+ * a C++17-compatible compiler (Clang 7+, GCC 8+)
 
 ### Compiling from Source
 
@@ -78,13 +79,13 @@ python3 -m build -w
 
 To compile and install the bindings, run
 
-    pip install [--user] .
+    pip install .
 
 #### Using conda
 
 (Tested on MacOS)
 ```
-conda create -p .venv -c conda-forge  python=3.9 clang cmake boost
+conda create -p .venv -c conda-forge  python=3.10 clang cmake boost
 conda activate .venv/
 pip install build pytest shapely
 # Resume cloning and build as described earlier
@@ -106,27 +107,52 @@ the dependencies with:
 
     sudo apt-get install python3-pytest python3-pytest-httpserver
 
+or install them with pip using:
+
+    pip install npyosmium[tests]
+
 The test suite can be run with:
 
     pytest test
 
+### CI/CD
+
+Relying on [act](https://nektosact.com/introduction.html) to test GitHub actions locally (to some extent).
+Install:
+- act
+- GitHub CLI (gh)
+- [gh-act extension](https://github.com/nektos/gh-act): `gh extension install nektos/gh-act`
+
+Then to test a single matrix combination:
+```
+act --artifact-server-path /tmp/artifacts --concurrent-jobs 1 --matrix os:ubuntu-22.04 --matrix 'cibw_build:cp310-*' pull_request
+```
 
 ## Documentation
 
-To build the documentation you need [Sphinx](http://sphinx-doc.org/)
-and the [autoprogram extension](https://pythonhosted.org/sphinxcontrib-autoprogram/)
-On Debian/Ubuntu install `python-sphinx sphinxcontrib-autoprogram`
-or `python3-sphinx python3-sphinxcontrib.autoprogram`.
+To build the documentation you need [mkdocs](https://www.mkdocs.org/)
+with the [mkdocstrings](https://mkdocstrings.github.io/)
+and [jupyter](https://github.com/danielfrg/mkdocs-jupyter) extensions
+and the [material theme](https://squidfunk.github.io/mkdocs-material/).
 
-First compile the bindings as described above and then run:
+All necessary packages can be installed via pip:
 
-    cd doc
-    make html
+    pip install npyosmium[docs]
+
+To build the documentation run:
+
+    mkdocs build
+
+or to few it locally, you can use:
+
+    mkdocs serve
 
 For building the man pages for the tools run:
 
-    cd doc
+    cd docs
     make man
+
+The man pages can be found in docs/man.
 
 ## Bugs and Questions
 

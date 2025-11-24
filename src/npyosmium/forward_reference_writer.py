@@ -4,46 +4,52 @@
 #
 # Copyright (C) 2024 Sarah Hoffmann <lonvia@denofr.de> and others.
 # For a full list of authors see the git log.
-from typing import Any, Optional
+import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Any, Optional, Union
 
-from npyosmium._osmium import SimpleWriter
 from npyosmium import IdTracker
+from npyosmium._osmium import SimpleWriter
 from npyosmium.file_processor import FileProcessor, zip_processors
+from npyosmium.io import File, FileBuffer
+
 
 class ForwardReferenceWriter:
     """ Writer that adds forward-referenced objects optionally also making
         the final file reference complete. An object is a forward reference
-        when directly or indirectly references one of the objects originally
+        when it directly or indirectly needs one of the objects originally
         written out.
 
         The collected data is first written into a temporary file, When the
         writer is closed, the references are collected from the reference file
         and written out together with the collected data into the final file.
 
-        `outfile` is the name of the output file to write. The file must
-        not yet exist unless `overwrite` is set to True.
-
-        `ref_src` is the OSM input file, where to take the reference objects
-        from. This is usually the same file the data to be written is taken
-        from.
-
-        The writer will collect back references by default to make the
-        file reference-complete. Set `back_references=False` to disable
-        this behaviour.
-
-        The writer will not complete nested relations by default. If you
-        need nested relations, set `relation_depth` to the minimum depth
-        to which relations shall be completed.
-
         The writer should usually be used as a context manager.
     """
 
-    def __init__(self, outfile: str, ref_src: str,
+    def __init__(self, outfile: Union[str, 'os.PathLike[str]', File],
+                 ref_src: Union[str, 'os.PathLike[str]', File, FileBuffer],
                  overwrite: bool=False, back_references: bool=True,
                  remove_tags: bool=True, forward_relation_depth: int=0,
                  backward_relation_depth: int=1) -> None:
+        """ Create a new writer.
+
+            `outfile` is the name of the output file to write. The file must
+            not yet exist unless `overwrite` is set to True.
+
+            `ref_src` is the OSM input file, where to take the reference objects
+            from. This is usually the same file the data to be written is taken
+            from.
+
+            The writer will collect back-references by default to make the
+            file reference-complete. Set `back_references=False` to disable
+            this behaviour.
+
+            The writer will not complete nested relations by default. If you
+            need nested relations, set `relation_depth` to the minimum depth
+            to which relations shall be completed.
+        """
         self.outfile = outfile
         self.tmpdir: Optional['TemporaryDirectory[Any]'] = TemporaryDirectory()
         self.writer = SimpleWriter(str(Path(self.tmpdir.name, 'forward_writer.osm.pbf')))
@@ -117,7 +123,7 @@ class ForwardReferenceWriter:
                 self.id_tracker.complete_backward_references(self.ref_src,
                                                              relation_depth=self.backward_relation_depth)
 
-            fp1 = FileProcessor(str(Path(self.tmpdir.name, 'forward_writer.osm.pbf')))
+            fp1 = FileProcessor(Path(self.tmpdir.name, 'forward_writer.osm.pbf'))
             fp2 = FileProcessor(self.ref_src).with_filter(self.id_tracker.id_filter())
 
 

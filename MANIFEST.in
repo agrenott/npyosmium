@@ -1,11 +1,17 @@
-include *md
+include README.md
+include CHANGELOG.md
 include LICENSE.TXT
 include CMakeLists.txt
+include mkdocs.yaml
 include cmake/*.cmake
 include lib/*.h
 include lib/*.cc
-include doc/*.rst
 include examples/*py
 include test/*py
+include src/py.typed
+recursive-include src *.pyi
+recursive-include docs *md *css
+include docs/cookbooks/*.ipynb
+include docs/Makefile
 graft contrib
 prune contrib/*/.git

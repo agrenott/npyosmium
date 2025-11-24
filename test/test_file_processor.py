@@ -12,7 +12,8 @@ from helpers import IDCollector
 @pytest.mark.parametrize('init', [None, 1])
 def test_file_processor_bad_init(init):
     with pytest.raises(TypeError):
-        o.FileProcessor(init)
+        for obj in o.FileProcessor(init):
+            pass
 
 def test_simple_generator(opl_buffer):
     count = 0
@@ -240,7 +241,7 @@ def test_filtered_handler_basehandler(opl_buffer, tmp_path):
 
     ids = IDCollector()
 
-    o.apply(str(testf), ids)
+    o.apply(testf, ids)
 
     assert ids.nodes == [3]
     assert ids.ways == [2]
