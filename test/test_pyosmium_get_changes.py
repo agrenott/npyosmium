@@ -1,18 +1,19 @@
-# SPDX-License-Identifier: BSD
+# SPDX-License-Identifier: BSD-2-Clause
 #
-# This file is part of Pyosmium.
+# This file is part of pyosmium. (https://osmcode.org/pyosmium/)
 #
-# Copyright (C) 2023 Sarah Hoffmann.
+# Copyright (C) 2025 Sarah Hoffmann <lonvia@denofr.de> and others.
+# For a full list of authors see the git log.
 """ Tests for the npyosmium-get-changes script.
 """
-from pathlib import Path
+import uuid
 from textwrap import dedent
 
-import pytest
-import npyosmium.replication.server
-import npyosmium as o
-
 from helpers import IDCollector
+
+import npyosmium
+import npyosmium.replication.server
+from npyosmium.tools.pyosmium_get_changes import pyosmium_get_changes
 
 try:
     import http.cookiejar as cookiejarlib
@@ -22,18 +23,8 @@ except ImportError:
 
 class TestPyosmiumGetChanges:
 
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        self.script = dict()
-
-        filename = (Path(__file__) / ".." / ".." / "tools"/ "npyosmium-get-changes").resolve()
-        with filename.open("rb") as f:
-            exec(compile(f.read(), str(filename), 'exec'), self.script)
-
-
     def main(self, httpserver, *args):
-        return self.script['main'](['--server', httpserver.url_for('')] + list(args))
-
+        return pyosmium_get_changes(['--server', httpserver.url_for('')] + list(args))
 
     def test_init_id(self, capsys, httpserver):
         assert 0 == self.main(httpserver, '-I', '453')
@@ -41,7 +32,6 @@ class TestPyosmiumGetChanges:
         output = capsys.readouterr().out.strip()
 
         assert output == '453'
-
 
     def test_init_date(self, capsys, httpserver):
         httpserver.expect_request('/state.txt').respond_with_data(dedent("""\
@@ -58,21 +48,18 @@ class TestPyosmiumGetChanges:
 
         assert output == '-1'
 
-
     def test_init_to_file(self, tmp_path, httpserver):
-        fname = tmp_path / 'db.seq'
+        fname = tmp_path / f"{uuid.uuid4()}.seq"
 
         assert 0 == self.main(httpserver, '-I', '453', '-f', str(fname))
         assert fname.read_text() == '453'
 
-
     def test_init_from_seq_file(self, tmp_path, httpserver):
-        fname = tmp_path / 'db.seq'
+        fname = tmp_path / f"{uuid.uuid4()}.seq"
         fname.write_text('453')
 
         assert 0 == self.main(httpserver, '-f', str(fname))
         assert fname.read_text() == '453'
-
 
     def test_init_date_with_cookie(self, capsys, tmp_path, httpserver):
         httpserver.expect_request('/state.txt').respond_with_data(dedent("""\
@@ -95,9 +82,8 @@ class TestPyosmiumGetChanges:
 
         assert output == '-1'
 
-
     def test_get_simple_update(self, tmp_path, httpserver):
-        outfile = tmp_path / 'outfile.opl'
+        outfile = tmp_path / f"{uuid.uuid4()}.opl"
 
         httpserver.expect_request('/state.txt').respond_with_data(dedent("""\
                     sequenceNumber=454
@@ -114,7 +100,7 @@ class TestPyosmiumGetChanges:
                               '-I', '453', '-o', str(outfile))
 
         ids = IDCollector()
-        o.apply(str(outfile), ids)
+        npyosmium.apply(str(outfile), ids)
 
         assert ids.nodes == [12, 13]
         assert ids.ways == [2]

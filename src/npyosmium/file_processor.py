@@ -2,10 +2,10 @@
 #
 # This file is part of pynpyosmium. (https://osmcode.org/pyosmium/)
 #
-# Copyright (C) 2024 Sarah Hoffmann <lonvia@denofr.de> and others.
+# Copyright (C) 2025 Sarah Hoffmann <lonvia@denofr.de> and others.
 # For a full list of authors see the git log.
 import os
-from typing import Any, Iterable, Iterator, List, Optional, Tuple, Union
+from typing import Iterable, Iterator, List, Optional, Tuple, Union
 
 import npyosmium
 from npyosmium.index import LocationTable
@@ -20,7 +20,7 @@ class FileProcessor:
     """
 
     def __init__(self, indata: Union[File, FileBuffer, str, 'os.PathLike[str]'],
-                 entities: npyosmium.osm.osm_entity_bits=npyosmium.osm.ALL) -> None:
+                 entities: npyosmium.osm.osm_entity_bits = npyosmium.osm.ALL) -> None:
         """ Initialise a new file processor for the given input source _indata_.
             This may either be a filename, an instance of [File](IO.md#npyosmium.io.File)
             or buffered data in form of a [FileBuffer](IO.md#npyosmium.io.FileBuffer).
@@ -55,7 +55,7 @@ class FileProcessor:
         """
         return self._node_store
 
-    def with_locations(self, storage: str='flex_mem') -> 'FileProcessor':
+    def with_locations(self, storage: str = 'flex_mem') -> 'FileProcessor':
         """ Enable caching of node locations. The file processor will keep
             the coordinates of all nodes that are read from the file in
             memory and automatically enhance the node list of ways with
@@ -78,7 +78,8 @@ class FileProcessor:
         elif storage is None or isinstance(storage, npyosmium.index.LocationTable):
             self._node_store = storage
         else:
-            raise TypeError("'storage' argument must be a LocationTable or a string describing the index")
+            raise TypeError("'storage' argument must be a LocationTable "
+                            "or a string describing the index")
 
         return self
 
@@ -117,7 +118,6 @@ class FileProcessor:
         """
         self._filters.append(filt)
         return self
-
 
     def handler_for_filtered(self, handler: 'npyosmium._osmium.HandlerLike') -> 'FileProcessor':
         """ Set a fallback handler for object that have been filtered out.
@@ -215,12 +215,11 @@ def zip_processors(*procs: FileProcessor) -> Iterable[List[Optional[OSMEntity]]]
             if self.comp == nextid:
                 self.current = next(self.iter, None)
                 if self.current is None:
-                    self.comp = (100, 0) # end of file marker. larger than any ID
+                    self.comp = (100, 0)  # end of file marker. larger than any ID
                 else:
                     self.comp = (TID[self.current.type_str()], self.current.id)
             assert self.comp is not None
             return self.comp
-
 
     iters = [_CompIter(p) for p in procs]
 

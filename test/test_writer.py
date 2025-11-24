@@ -1,39 +1,39 @@
-# SPDX-License-Identifier: BSD
+# SPDX-License-Identifier: BSD-2-Clause
 #
-# This file is part of Pyosmium.
+# This file is part of pyosmium. (https://osmcode.org/pyosmium/)
 #
-# Copyright (C) 2022 Sarah Hoffmann.
-from contextlib import contextmanager
-from collections import OrderedDict
+# Copyright (C) 2025 Sarah Hoffmann <lonvia@denofr.de> and others.
+# For a full list of authors see the git log.
 import uuid
+from collections import OrderedDict
+from contextlib import contextmanager
+from datetime import datetime, timedelta, timezone
 
 import pytest
-
-import npyosmium as o
-
 from helpers import mkdate
+
+import npyosmium
 
 
 @pytest.fixture
 def test_writer(tmp_path):
     @contextmanager
     def _WriteExpect(filename, expected):
-        with o.SimpleWriter(str(filename), 1024*1024) as writer:
+        with npyosmium.SimpleWriter(str(filename), 1024*1024) as writer:
             yield writer
 
         assert filename.read_text().strip() == expected
 
-
     def _create(expected):
-        filename = tmp_path / (str(uuid.uuid4()) + '.opl')
+        filename = tmp_path / f"{uuid.uuid4()}.opl"
         return _WriteExpect(filename, expected)
 
     return _create
 
 
-class O:
+class O:  # noqa: E742
     def __init__(self, **params):
-        for k,v in params.items():
+        for k, v in params.items():
             setattr(self, k, v)
 
 
@@ -54,6 +54,8 @@ class O:
       (O(uid=987), '0 v0 dV c0 t i987 u T'),
       (O(timestamp='2012-04-14T20:58:35Z'), '0 v0 dV c0 t2012-04-14T20:58:35Z i0 u T'),
       (O(timestamp=mkdate(2009, 4, 14, 20, 58, 35)), '0 v0 dV c0 t2009-04-14T20:58:35Z i0 u T'),
+      (O(timestamp=datetime(2009, 4, 14, 20, 58, 35, tzinfo=timezone(timedelta(hours=1)))),
+       '0 v0 dV c0 t2009-04-14T19:58:35Z i0 u T'),
       (O(timestamp='1970-01-01T00:00:01Z'), '0 v0 dV c0 t1970-01-01T00:00:01Z i0 u T')
     ])
 class TestWriteAttributes:
@@ -76,7 +78,7 @@ class TestWriteAttributes:
      ({}, 'T'),
      ((("foo", "bar"), ), 'Tfoo=bar'),
      ((("foo", "bar"), ("2", "1")), 'Tfoo=bar,2=1'),
-     ({'test' : 'drive'}, 'Ttest=drive'),
+     ({'test': 'drive'}, 'Ttest=drive'),
      (OrderedDict((('a', 'b'), ('c', '3'))), 'Ta=b,c=3'),
     ])
 class TestWriteTags:
@@ -137,7 +139,7 @@ def test_relation_members(test_writer):
         w.add_relation(O(members=(('n', 34, 'foo'),
                                   ('r', 200, ''),
                                   ('w', 1111, 'x')
-                                 )))
+                                  )))
 
 
 def test_relation_members_generic(test_writer):
@@ -145,7 +147,7 @@ def test_relation_members_generic(test_writer):
         w.add(O(members=(('n', 34, 'foo'),
                          ('r', 200, ''),
                          ('w', 1111, 'x')
-                        )))
+                         )))
 
 
 def test_relation_members_None(test_writer):
@@ -242,31 +244,31 @@ def test_member_object(test_writer, simple_handler):
 
 
 def test_set_custom_header(tmp_path):
-    fn = str(tmp_path / 'test.xml')
-    h = o.io.Header()
+    fn = tmp_path / f"{uuid.uuid4()}.xml"
+    h = npyosmium.io.Header()
     h.set('generator', 'foo')
-    h.add_box(o.osm.Box(0.1, -4, 10, 45))
+    h.add_box(npyosmium.osm.Box(0.1, -4, 10, 45))
 
-    writer = o.SimpleWriter(fn, 4000, h)
+    writer = npyosmium.SimpleWriter(fn, 4000, h)
 
     try:
         writer.add_node({})
     finally:
         writer.close()
 
-    with o.io.Reader(fn) as rd:
+    with npyosmium.io.Reader(fn) as rd:
         h = rd.header()
         assert h.get('generator') == 'foo'
         assert h.box().valid()
-        assert h.box().bottom_left == o.osm.Location(0.1, -4)
-        assert h.box().top_right == o.osm.Location(10, 45)
+        assert h.box().bottom_left == npyosmium.osm.Location(0.1, -4)
+        assert h.box().top_right == npyosmium.osm.Location(10, 45)
 
 
 def test_add_node_after_close(tmp_path, simple_handler):
     node_opl = "n235 v1 dV c0 t i0 u Telephant=yes x98.7 y-3.45"
 
-    filename = tmp_path / (str(uuid.uuid4()) + '.opl')
-    writer = o.SimpleWriter(str(filename), 1024*1024)
+    filename = tmp_path / f"{uuid.uuid4()}.opl"
+    writer = npyosmium.SimpleWriter(str(filename), 1024*1024)
     writer.close()
 
     with pytest.raises(RuntimeError, match='closed'):
@@ -276,18 +278,19 @@ def test_add_node_after_close(tmp_path, simple_handler):
 def test_add_way_after_close(tmp_path, simple_handler):
     node_opl = "w1 Nn1"
 
-    filename = tmp_path / (str(uuid.uuid4()) + '.opl')
-    writer = o.SimpleWriter(str(filename), 1024*1024)
+    filename = tmp_path / f"{uuid.uuid4()}.opl"
+    writer = npyosmium.SimpleWriter(str(filename), 1024*1024)
     writer.close()
 
     with pytest.raises(RuntimeError, match='closed'):
         simple_handler(node_opl, way=lambda o: writer.add_way(o))
 
+
 def test_add_relation_after_close(tmp_path, simple_handler):
     node_opl = "r54 Mn1@,w3@foo"
 
-    filename = tmp_path / (str(uuid.uuid4()) + '.opl')
-    writer = o.SimpleWriter(str(filename), 1024*1024)
+    filename = tmp_path / f"{uuid.uuid4()}.opl"
+    writer = npyosmium.SimpleWriter(str(filename), 1024*1024)
     writer.close()
 
     with pytest.raises(RuntimeError, match='closed'):
@@ -296,14 +299,14 @@ def test_add_relation_after_close(tmp_path, simple_handler):
 
 @pytest.mark.parametrize("final_item", (True, False))
 def test_catch_errors_in_add_node(tmp_path, final_item):
-    test_file = tmp_path / 'test.opl'
+    test_file = tmp_path / f"{uuid.uuid4()}.opl"
 
-    with o.SimpleWriter(str(test_file), 4000) as writer:
-        writer.add_node(o.osm.mutable.Node(id=123))
+    with npyosmium.SimpleWriter(str(test_file), 4000) as writer:
+        writer.add_node(npyosmium.osm.mutable.Node(id=123))
         with pytest.raises(TypeError):
-            writer.add_node(o.osm.mutable.Node(id=124, tags=34))
+            writer.add_node(npyosmium.osm.mutable.Node(id=124, tags=34))
         if not final_item:
-            writer.add_node(o.osm.mutable.Node(id=125))
+            writer.add_node(npyosmium.osm.mutable.Node(id=125))
 
     output = test_file.read_text()
 
@@ -316,14 +319,14 @@ def test_catch_errors_in_add_node(tmp_path, final_item):
 
 @pytest.mark.parametrize("final_item", (True, False))
 def test_catch_errors_in_add_way(tmp_path, final_item):
-    test_file = tmp_path / 'test.opl'
+    test_file = tmp_path / f"{uuid.uuid4()}.opl"
 
-    with o.SimpleWriter(test_file, 4000) as writer:
-        writer.add_way(o.osm.mutable.Way(id=123, nodes=[1, 2, 3]))
+    with npyosmium.SimpleWriter(test_file, 4000) as writer:
+        writer.add_way(npyosmium.osm.mutable.Way(id=123, nodes=[1, 2, 3]))
         with pytest.raises(TypeError):
-            writer.add_way(o.osm.mutable.Way(id=124, nodes=34))
+            writer.add_way(npyosmium.osm.mutable.Way(id=124, nodes=34))
         if not final_item:
-            writer.add_way(o.osm.mutable.Way(id=125, nodes=[11, 12]))
+            writer.add_way(npyosmium.osm.mutable.Way(id=125, nodes=[11, 12]))
 
     output = test_file.read_text()
 
@@ -336,14 +339,14 @@ def test_catch_errors_in_add_way(tmp_path, final_item):
 
 @pytest.mark.parametrize("final_item", (True, False))
 def test_catch_errors_in_add_relation(tmp_path, final_item):
-    test_file = tmp_path / 'test.opl'
+    test_file = tmp_path / f"{uuid.uuid4()}.opl"
 
-    with o.SimpleWriter(filename=str(test_file), bufsz=4000) as writer:
-        writer.add_relation(o.osm.mutable.Relation(id=123))
+    with npyosmium.SimpleWriter(filename=str(test_file), bufsz=4000) as writer:
+        writer.add_relation(npyosmium.osm.mutable.Relation(id=123))
         with pytest.raises(TypeError):
-            writer.add_relation(o.osm.mutable.Relation(id=124, members=34))
+            writer.add_relation(npyosmium.osm.mutable.Relation(id=124, members=34))
         if not final_item:
-            writer.add_relation(o.osm.mutable.Relation(id=125))
+            writer.add_relation(npyosmium.osm.mutable.Relation(id=125))
 
     output = test_file.read_text()
 
@@ -355,29 +358,28 @@ def test_catch_errors_in_add_relation(tmp_path, final_item):
 
 
 def test_do_not_overwrite_by_default(tmp_path):
-    test_file = tmp_path / 'test.opl'
+    test_file = tmp_path / f"{uuid.uuid4()}.opl"
 
-    with o.SimpleWriter(filename=str(test_file), bufsz=4000) as writer:
-        writer.add_node(o.osm.mutable.Node(id=123))
+    with npyosmium.SimpleWriter(filename=str(test_file), bufsz=4000) as writer:
+        writer.add_node(npyosmium.osm.mutable.Node(id=123))
 
     # try to open again
     with pytest.raises(RuntimeError, match='Open failed'):
-        o.SimpleWriter(filename=str(test_file))
+        npyosmium.SimpleWriter(filename=str(test_file))
 
 
 def test_do_overwrite(tmp_path):
-    test_file = tmp_path / 'test.opl'
+    test_file = tmp_path / f"{uuid.uuid4()}.opl"
 
-    with o.SimpleWriter(filename=str(test_file), bufsz=4000) as writer:
-        writer.add_node(o.osm.mutable.Node(id=123))
+    with npyosmium.SimpleWriter(filename=str(test_file), bufsz=4000) as writer:
+        writer.add_node(npyosmium.osm.mutable.Node(id=123))
 
-    with o.SimpleWriter(filename=str(test_file), overwrite=True) as writer:
+    with npyosmium.SimpleWriter(filename=str(test_file), overwrite=True) as writer:
         pass
 
 
-
 def test_write_to_file(tmp_path):
-    test_file = tmp_path / 'test.txt'
+    test_file = tmp_path / f"{uuid.uuid4()}.txt"
 
-    with o.SimpleWriter(o.io.File(test_file, 'opl'), bufsz=4000) as writer:
-        writer.add_node(o.osm.mutable.Node(id=123))
+    with npyosmium.SimpleWriter(npyosmium.io.File(test_file, 'opl'), bufsz=4000) as writer:
+        writer.add_node(npyosmium.osm.mutable.Node(id=123))

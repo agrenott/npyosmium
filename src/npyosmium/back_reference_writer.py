@@ -15,6 +15,7 @@ from npyosmium.file_processor import FileProcessor, zip_processors
 from npyosmium.io import File, FileBuffer
 
 
+
 class BackReferenceWriter:
     """ Writer that adds referenced objects, so that all written
         objects are reference-complete.
@@ -29,7 +30,7 @@ class BackReferenceWriter:
 
     def __init__(self, outfile: Union[str, 'os.PathLike[str]', File],
                  ref_src: Union[str, 'os.PathLike[str]', File, FileBuffer],
-                 overwrite: bool=False, remove_tags: bool=True,
+                 overwrite: bool = False, remove_tags: bool = True,
                  relation_depth: int = 0):
         """ Create a new writer.
 

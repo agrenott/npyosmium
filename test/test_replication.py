@@ -1,21 +1,22 @@
-# SPDX-License-Identifier: BSD
+# SPDX-License-Identifier: BSD-2-Clause
 #
-# This file is part of Pyosmium.
+# This file is part of pyosmium. (https://osmcode.org/pyosmium/)
 #
-# Copyright (C) 2023 Sarah Hoffmann.
+# Copyright (C) 2025 Sarah Hoffmann <lonvia@denofr.de> and others.
+# For a full list of authors see the git log.
 import logging
 import time
+import uuid
 from textwrap import dedent
 
 import pytest
-
+from helpers import CountingHandler, mkdate
 from werkzeug.wrappers import Response
 
-from helpers import mkdate, CountingHandler
-
-import npyosmium as o
-import npyosmium.replication.server as rserv
 import npyosmium.replication
+import npyosmium.replication.server as rserv
+
+pytestmark = [pytest.mark.thread_unsafe, pytest.mark.iterations(1)]
 
 
 @pytest.mark.parametrize("inp,outp", [
@@ -45,7 +46,7 @@ def test_get_diff_url(inp, outp):
 
 
 def test_get_newest_change_from_file(tmp_path):
-    fn = tmp_path / 'change.opl'
+    fn = tmp_path / f"{uuid.uuid4()}.opl"
     fn.write_text('n6365 v1 c63965061 t2018-10-29T03:56:07Z i8369524 ux x1 y7')
 
     val = npyosmium.replication.newest_change_from_file(str(fn))
@@ -364,7 +365,7 @@ def test_apply_diffs_permanent_error(httpserver, caplog):
     with caplog.at_level(logging.ERROR):
         with rserv.ReplicationServer(httpserver.url_for(''), "opl") as svr:
             h = CountingHandler()
-            assert None == svr.apply_diffs(h, 100, 10000)
+            assert svr.apply_diffs(h, 100, 10000) is None
             assert h.counts == [0, 0, 0, 0]
 
     assert 'Error during diff download' in caplog.text
@@ -413,8 +414,6 @@ def test_apply_diffs_transient_error(httpserver, caplog):
             assert h.counts == [2, 1, 0, 0]
 
     assert 'Error during diff download' not in caplog.text
-
-
 
 
 def test_apply_diffs_transient_error_permanent(httpserver, caplog):

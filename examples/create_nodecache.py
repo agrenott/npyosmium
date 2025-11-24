@@ -1,15 +1,16 @@
-import npyosmium as o
 import sys
+
+import npyosmium
 
 if len(sys.argv) != 3:
     print("Usage: python create_nodecache.py <osm file> <node cache>")
     exit(-1)
 
-reader = o.io.Reader(sys.argv[1], o.osm.osm_entity_bits.NODE)
+reader = npyosmium.io.Reader(sys.argv[1], npyosmium.osm.osm_entity_bits.NODE)
 
-idx = o.index.create_map("sparse_file_array," + sys.argv[2])
-lh = o.NodeLocationsForWays(idx)
+idx = npyosmium.index.create_map("sparse_file_array," + sys.argv[2])
+lh = npyosmium.NodeLocationsForWays(idx)
 
-o.apply(reader, lh)
+npyosmium.apply(reader, lh)
 
 reader.close()

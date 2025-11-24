@@ -1,46 +1,50 @@
-# SPDX-License-Identifier: BSD
+# SPDX-License-Identifier: BSD-2-Clause
 #
-# This file is part of Pyosmium.
+# This file is part of pyosmium. (https://osmcode.org/pyosmium/)
 #
-# Copyright (C) 2022 Sarah Hoffmann.
+# Copyright (C) 2025 Sarah Hoffmann <lonvia@denofr.de> and others.
+# For a full list of authors see the git log.
+import uuid
+
 import pytest
-
-import npyosmium as o
-
 from helpers import CountingHandler
+
+import npyosmium
+
 
 class NullHandler:
 
     def node(self, n):
         pass
 
+
 def _run_file(fn):
-    with o.io.Reader(fn) as rd:
-        o.apply(rd, NullHandler())
+    with npyosmium.io.Reader(fn) as rd:
+        npyosmium.apply(rd, NullHandler())
 
 
 @pytest.mark.parametrize('as_string', [True, False])
 def test_file_simple(tmp_path, as_string):
-    fn = tmp_path / 'text.opl'
+    fn = tmp_path / f"{uuid.uuid4()}.opl"
     fn.write_text('n1')
 
     if as_string:
         fn = str(fn)
 
-    for n in o.FileProcessor(o.io.File(fn)):
+    for n in npyosmium.FileProcessor(npyosmium.io.File(fn)):
         assert n.is_node()
         assert n.id == 1
 
 
 @pytest.mark.parametrize('as_string', [True, False])
 def test_file_with_format(tmp_path, as_string):
-    fn = tmp_path / 'text.txt'
+    fn = tmp_path / f"{uuid.uuid4()}.txt"
     fn.write_text('n1')
 
     if as_string:
         fn = str(fn)
 
-    for n in o.FileProcessor(o.io.File(fn, 'opl')):
+    for n in npyosmium.FileProcessor(npyosmium.io.File(fn, 'opl')):
         assert n.is_node()
         assert n.id == 1
 
@@ -72,14 +76,14 @@ def test_relation_with_tags(test_data):
 def test_broken_timestamp(test_data):
     fn = test_data('n1 tx')
 
-    with o.io.Reader(fn) as rd:
+    with npyosmium.io.Reader(fn) as rd:
         with pytest.raises(RuntimeError):
-            o.apply(rd, NullHandler())
+            npyosmium.apply(rd, NullHandler())
 
 
 @pytest.mark.parametrize('as_string', [True, False])
 def test_file_header(tmp_path, as_string):
-    fn = tmp_path / 'empty.xml'
+    fn = tmp_path / f"{uuid.uuid4()}.xml"
     fn.write_text("""<?xml version='1.0' encoding='UTF-8'?>
     <osm version="0.6" generator="test-pyosmium" timestamp="2014-08-26T20:22:02Z">
          <bounds minlat="-90" minlon="-180" maxlat="90" maxlon="180"/>
@@ -89,7 +93,7 @@ def test_file_header(tmp_path, as_string):
     if as_string:
         fn = str(fn)
 
-    with o.io.Reader(fn) as rd:
+    with npyosmium.io.Reader(fn) as rd:
         h = rd.header()
         assert not h.has_multiple_object_versions
         assert h.box().valid()
@@ -97,9 +101,9 @@ def test_file_header(tmp_path, as_string):
 
 
 def test_reader_with_filebuffer():
-    rd = o.io.Reader(o.io.FileBuffer('n1 x4 y1'.encode('utf-8'), 'opl'))
+    rd = npyosmium.io.Reader(npyosmium.io.FileBuffer('n1 x4 y1'.encode('utf-8'), 'opl'))
     handler = CountingHandler()
 
-    o.apply(rd, handler)
+    npyosmium.apply(rd, handler)
 
     assert handler.counts == [1, 0, 0, 0]

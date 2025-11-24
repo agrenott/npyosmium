@@ -1,4 +1,3 @@
-#!/usr/bin/python
 """
 Fetch diffs from an OSM planet server.
 
@@ -24,22 +23,21 @@ npyosmium-get-changes does not fetch the cookie from these services for you.
 However, it can read cookies from a Netscape-style cookie jar file, send these
 cookies to the server and will save received cookies to the jar file.
 """
-
 import datetime as dt
 import http.cookiejar
 import logging
-import re
 import sys
 from argparse import ArgumentParser, ArgumentTypeError, RawDescriptionHelpFormatter
 from textwrap import dedent as msgfmt
 
-from npyosmium import SimpleHandler, SimpleWriter
+from npyosmium import SimpleWriter
 from npyosmium.replication import newest_change_from_file
 from npyosmium.replication import server as rserv
 from npyosmium.replication.utils import get_replication_header
 from npyosmium.version import npyosmium_release
 
 log = logging.getLogger()
+
 
 class ReplicationStart(object):
     """ Represents the point where changeset download should begin.
@@ -76,7 +74,8 @@ class ReplicationStart(object):
             date = dt.datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%SZ")
             date = date.replace(tzinfo=dt.timezone.utc)
         except ValueError:
-            raise ArgumentTypeError("Date needs to be in ISO8601 format (e.g. 2015-12-24T08:08:08Z).")
+            raise ArgumentTypeError(
+                "Date needs to be in ISO8601 format (e.g. 2015-12-24T08:08:08Z).")
 
         return ReplicationStart(date=date)
 
@@ -104,6 +103,7 @@ class ReplicationStart(object):
 
         return ReplicationStart(seq_id=seq, date=ts, src=url)
 
+
 def write_end_sequence(fname, seqid):
     """Either writes out the sequence file or prints the sequence id to stdout.
     """
@@ -112,6 +112,7 @@ def write_end_sequence(fname, seqid):
     else:
         with open(fname, 'w') as fd:
             fd.write(str(seqid))
+
 
 def get_arg_parser(from_main=False):
     parser = ArgumentParser(prog='npyosmium-get-changes',
@@ -127,7 +128,7 @@ def get_arg_parser(from_main=False):
                         help="Format the data should be saved in.")
     parser.add_argument('--server', action='store', dest='server_url',
                         help='Base URL of the replication server')
-    parser.add_argument('--diff-type', action='store', dest='server_diff_type',
+    parser.add_argument('--diff-type', action='store', dest='server_diff_type', default='osc.gz',
                         help='File format used by the replication server (default: osc.gz)')
     parser.add_argument('--cookie', dest='cookie',
                         help='Netscape-style cookie jar file to read cookies from '
@@ -144,10 +145,10 @@ def get_arg_parser(from_main=False):
     group.add_argument('-O', '--start-osm-data', dest='start_file', metavar='OSMFILE',
                        help='start at the date of the newest OSM object in the file')
     parser.add_argument('-f', '--sequence-file', dest='seq_file',
-                       help='Sequence file. If the file exists, then updates '
-                            'will start after the id given in the file. At the '
-                            'end of the process, the last sequence ID contained '
-                            'in the diff is written.')
+                        help='Sequence file. If the file exists, then updates '
+                             'will start after the id given in the file. At the '
+                             'end of the process, the last sequence ID contained '
+                             'in the diff is written.')
     parser.add_argument('--ignore-osmosis-headers', dest='ignore_headers',
                         action='store_true',
                         help='When determining the start from an OSM file, '
@@ -162,7 +163,7 @@ def get_arg_parser(from_main=False):
     return parser
 
 
-def main(args):
+def pyosmium_get_changes(args):
     logging.basicConfig(stream=sys.stderr,
                         format='%(asctime)s %(levelname)s: %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S')
@@ -192,17 +193,16 @@ def main(args):
 
     if options.server_url is not None and options.start.source is not None:
         if options.server_url != options.start.source:
-            log.error(msgfmt("""
-              You asked to use server URL:
-                %s
-              but the referenced OSM file points to replication server:
-                %s
-              If you really mean to overwrite the URL, use --ignore-osmosis-headers."""
-              % (options.server_url, options.start.source)))
+            log.error(msgfmt(f"""
+                You asked to use server URL:
+                  {options.server_url}
+                but the referenced OSM file points to replication server:
+                  {options.start.source}
+                If you really mean to overwrite the URL, use --ignore-osmosis-headers."""))
             return 2
     url = options.server_url \
-            or options.start.source \
-            or 'https://planet.osm.org/replication/minute/'
+        or options.start.source \
+        or 'https://planet.osm.org/replication/minute/'
     logging.info("Using replication server at %s" % url)
 
     with rserv.ReplicationServer(url, diff_type=options.server_diff_type) as svr:
@@ -246,5 +246,9 @@ def main(args):
     return 0
 
 
-if __name__ == '__main__':
-    exit(main(sys.argv[1:]))
+def main():
+    logging.basicConfig(stream=sys.stderr,
+                        format='%(asctime)s %(levelname)s: %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S')
+
+    return pyosmium_get_changes(sys.argv[1:])

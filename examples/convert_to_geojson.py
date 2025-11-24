@@ -3,14 +3,15 @@ Output an OSM file as geojson.
 
 This demonstrates how to use the GeoJSON factory.
 """
-import sys
 import json
+import sys
 
-import npyosmium as o
+import npyosmium
 
-geojsonfab = o.geom.GeoJSONFactory()
+geojsonfab = npyosmium.geom.GeoJSONFactory()
 
-class GeoJsonWriter(o.SimpleHandler):
+
+class GeoJsonWriter(npyosmium.SimpleHandler):
 
     def __init__(self):
         super().__init__()
@@ -21,17 +22,17 @@ class GeoJsonWriter(o.SimpleHandler):
     def finish(self):
         print(']}')
 
-    def node(self, o):
-        if o.tags:
-            self.print_object(geojsonfab.create_point(o), o.tags)
+    def node(self, n):
+        if n.tags:
+            self.print_object(geojsonfab.create_point(n), n.tags)
 
-    def way(self, o):
-        if o.tags and not o.is_closed():
-            self.print_object(geojsonfab.create_linestring(o), o.tags)
+    def way(self, w):
+        if w.tags and not w.is_closed():
+            self.print_object(geojsonfab.create_linestring(w), w.tags)
 
-    def area(self, o):
-        if o.tags:
-            self.print_object(geojsonfab.create_multipolygon(o), o.tags)
+    def area(self, a):
+        if a.tags:
+            self.print_object(geojsonfab.create_multipolygon(a), a.tags)
 
     def print_object(self, geojson, tags):
         geom = json.loads(geojson)
@@ -48,7 +49,8 @@ class GeoJsonWriter(o.SimpleHandler):
 def main(osmfile):
     handler = GeoJsonWriter()
 
-    handler.apply_file(osmfile,filters=[o.filter.EmptyTagFilter().apply_to(o.osm.NODE)])
+    handler.apply_file(osmfile,
+                       filters=[npyosmium.filter.EmptyTagFilter().enable_for(npyosmium.osm.NODE)])
     handler.finish()
 
     return 0

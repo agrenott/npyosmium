@@ -2,58 +2,67 @@
 #
 # This file is part of pyosmium. (https://osmcode.org/pyosmium/)
 #
-# Copyright (C) 2023 Sarah Hoffmann <lonvia@denofr.de> and others.
+# Copyright (C) 2025 Sarah Hoffmann <lonvia@denofr.de> and others.
 # For a full list of authors see the git log.
 """ Helper functions to communicate with replication servers.
 """
-from typing import NamedTuple, Optional, Any, Iterator, cast, Mapping, Tuple
-import urllib.request as urlrequest
-from urllib.error import URLError
 import datetime as dt
+import logging
+import urllib.request as urlrequest
 from contextlib import contextmanager
 from math import ceil
+from typing import Any, Iterator, Mapping, NamedTuple, Optional, Tuple, cast
+from urllib.error import URLError
 
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 
-import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util import Retry
-
-from npyosmium import MergeInputReader, BaseHandler
+from npyosmium import BaseHandler, MergeInputReader, version
 from npyosmium import io as oio
-from npyosmium import version
-
-import logging
 
 LOG = logging.getLogger('pyosmium')
 LOG.addHandler(logging.NullHandler())
 
+
 class OsmosisState(NamedTuple):
+    """ Represents a state file of a replication server.
+    """
     sequence: int
+    "The ID of the replication change on the server."
     timestamp: dt.datetime
+    "Date until when changes are contained in the change file."
+
 
 class DownloadResult(NamedTuple):
+    """ Downloaded change.
+    """
     id: int
+    "The ID of the latest downloaded replication change on the server."
     reader: MergeInputReader
+    "[npyosmium.MergeInputReader][] with all downloaded changes."
     newest: int
+    "ID of the newest change available on the server."
+
 
 class ReplicationServer:
     """ Represents a connection to a  server that publishes replication data.
         Replication change files allow to keep local OSM data up-to-date without
         downloading the full dataset again.
 
-        `url` contains the base URL of the replication service. This is the
-        directory that contains the state file with the current state. If the
-        replication service serves something other than osc.gz files, set
-        the `diff_type` to the given file suffix.
-
         ReplicationServer may be used as a context manager. In this case, it
         internally keeps a connection to the server making downloads faster.
     """
 
     def __init__(self, url: str, diff_type: str = 'osc.gz') -> None:
+        """ Set up the connection to a replication server.
+
+            `url` contains the base URL of the replication service. This is
+            the directory that contains the state file with the current
+            state. If the replication service serves something other
+            than osc.gz files, set the `diff_type` to the given file suffix.
+        """
+
         self.baseurl = url
         self.diff_type = diff_type
         self.extra_request_params: dict[str, Any] = dict(timeout=60, stream=True)
@@ -84,11 +93,11 @@ class ReplicationServer:
             See the `requests documentation <https://requests.readthedocs.io/en/latest/api/?highlight=get#requests.request>`_
             for possible parameters. Per default, a timeout of 60 sec is set
             and streaming download enabled.
-        """
+        """  # noqa
         self.extra_request_params[key] = value
 
     def make_request(self, url: str) -> urlrequest.Request:
-        headers = {"User-Agent" : f"npyosmium/{version.npyosmium_release}"}
+        headers = {"User-Agent": f"npyosmium/{version.npyosmium_release}"}
         return urlrequest.Request(url, headers=headers)
 
     def open_url(self, url: urlrequest.Request) -> Any:
@@ -99,7 +108,7 @@ class ReplicationServer:
             get_params = self.extra_request_params
         else:
             get_params = dict(self.extra_request_params)
-            get_params['headers'] = {k: v for k,v in url.header_items()}
+            get_params['headers'] = {k: v for k, v in url.header_items()}
 
         if self.session is not None:
             return self.session.get(url.get_full_url(), **get_params)
@@ -144,7 +153,7 @@ class ReplicationServer:
         while left_size > 0 and current_id <= newest.sequence:
             try:
                 diffdata = self.get_diff_block(current_id)
-            except:
+            except:  # noqa: E722
                 LOG.error("Error during diff download. Bailing out.")
                 diffdata = ''
             if len(diffdata) == 0:
@@ -239,7 +248,8 @@ class ReplicationServer:
             h.set("osmosis_replication_sequence_number", str(diffs.id))
             info = self.get_state_info(diffs.id)
             if info is not None:
-                h.set("osmosis_replication_timestamp", info.timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"))
+                h.set("osmosis_replication_timestamp",
+                      info.timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"))
         if extra_headers is not None:
             for k, v in extra_headers.items():
                 h.set(k, v)
@@ -260,7 +270,6 @@ class ReplicationServer:
         writer.close()
 
         return (diffs.id, diffs.newest)
-
 
     def timestamp_to_sequence(self, timestamp: dt.datetime,
                               balanced_search: bool = False) -> Optional[int]:
@@ -344,7 +353,6 @@ class ReplicationServer:
             if lower.sequence + 1 >= upper.sequence:
                 return lower.sequence
 
-
     def get_state_info(self, seq: Optional[int] = None, retries: int = 2) -> Optional[OsmosisState]:
         """ Downloads and returns the state information for the given
             sequence. If the download is successful, a namedtuple with
@@ -407,7 +415,6 @@ class ReplicationServer:
             # generated by urllib.request
             return cast(str, resp.read())
 
-
     def get_state_url(self, seq: Optional[int]) -> str:
         """ Returns the URL of the state.txt files for a given sequence id.
 
@@ -420,7 +427,6 @@ class ReplicationServer:
 
         return '%s/%03i/%03i/%03i.state.txt' % \
                (self.baseurl, seq / 1000000, (seq % 1000000) / 1000, seq % 1000)
-
 
     def get_diff_url(self, seq: int) -> str:
         """ Returns the URL to the diff file for the given sequence id.
