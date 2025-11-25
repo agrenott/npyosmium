@@ -3,10 +3,12 @@ This example shows how to filter and modify tags and write the results back.
 It changes all tag values 'yes/no' to '1/0'.
 """
 
-import npyosmium as o
 import sys
 
-class BoolNormalizer(o.SimpleHandler):
+import npyosmium
+
+
+class BoolNormalizer(npyosmium.SimpleHandler):
 
     def __init__(self, writer):
         super(BoolNormalizer, self).__init__()
@@ -44,14 +46,14 @@ class BoolNormalizer(o.SimpleHandler):
             # and discard the tag list we just created.
             return o
 
-    def node(self, o):
-        self.writer.add_node(self.normalize(o))
+    def node(self, n):
+        self.writer.add_node(self.normalize(n))
 
-    def way(self, o):
-        self.writer.add_way(self.normalize(o))
+    def way(self, w):
+        self.writer.add_way(self.normalize(w))
 
-    def relation(self, o):
-        self.writer.add_relation(self.normalize(o))
+    def relation(self, r):
+        self.writer.add_relation(self.normalize(r))
 
 
 if __name__ == '__main__':
@@ -59,8 +61,7 @@ if __name__ == '__main__':
         print("Usage: python normalize_boolean.py <infile> <outfile>")
         sys.exit(-1)
 
-
-    writer = o.SimpleWriter(sys.argv[2])
+    writer = npyosmium.SimpleWriter(sys.argv[2])
     BoolNormalizer(writer).apply_file(sys.argv[1])
 
     writer.close()

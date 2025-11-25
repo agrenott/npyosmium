@@ -4,6 +4,120 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [4.2.0] - 2025-10-21
+
+### Added
+
+- new 'end_id' parameter for diff processing functions
+- new end ID/date parameters for pyosmium tools
+
+### Fixed
+
+- restore packaging of README
+- use replace() instead of rename() to make overwriting planet files on Windows
+
+### Changed
+
+- pre-generate man pages for easier packaging
+- diff processing functions and tools now throw an Error when diffs are
+  requested that are older than then oldest available diff on the server
+- tools now error out, when the first diff download encounters a client
+  error (HTTP 4xx)
+
+## [4.1.1] - 2025-08-31
+
+### Fixed
+
+- build command for man pages adapted to new structure (thanks @sebastic)
+
+## [4.1.0] - 2025-08-30
+
+### Added
+
+- introduced flake8 linting for Python sources and tests
+- experimental support for free-threaded Python
+- support for Python 3.14
+- binary wheels for Windows ARM architecture
+
+### Fixed
+
+- various errors in the documentation (thanks @ltog, @amandasaurus, @uniform641)
+- make timestamp conversions thread-safe
+
+### Changed
+
+- updated to pybind11 3.0 (drops support for Python 3.7 and CMake < 3.15)
+- replace setuptools build system with scikit-build-core
+- create version.h on the fly during build
+  (now reflects the library versions actually used for building pyosmium)
+- example code modernized (thanks @jake-low)
+
+## [4.0.2] - 2024-10-19
+
+### Fixed
+
+- set proper default 'osc.gz' for prefixes on replication servers
+
+### Added
+
+- add documentation for writing custom objects and replication module
+
+
+## [4.0.1] - 2024-09-27
+
+### Fixed
+
+- correctly package py.typed file
+- typing: correctly report inheritance of SimpleWriter and NodeLocationsForWays
+
+
+## [4.0.0] - 2024-09-20
+
+### Added
+
+- support for Python 3.13
+- iterative processing of OSM files (see FileProcessor)
+- new `flush()` callback for handlers
+- FileBuffer for reading from a Python buffer instead of a file
+- bit operators for entity bit enum
+- filter mode for handlers (return False to stop processing)
+- various C++-implementations of filters (for tags, keys, ids, etc.)
+- convenience functions to determine object types
+- binary wheels for MacOS and Intel ARM architecture
+- haversine functions for two points
+- direct access to lat/lon for nodes
+- expose osmium's IdSet
+- new IdTracker for efficient tracking of dependent objects
+- new writers for adding forward and backward references to output
+- new parameter for server file type for pyosmium_get_updates
+- new filter to add `__geo_interface__` attribute
+
+### Fixed
+
+- consistently use namespaces everywhere
+- deprecation warnings around utc_now (thanks @mtmail)
+
+### Changed
+
+- SimpleHandler is now a Python class
+- make NodeLocationForWays a generic BaseHandler
+- `apply()` and MergeInputReader can take an arbitrary number of handlers
+- accept Python class as handler, no inheritance from SimpleHandler necessary
+- new minimum requirements: pybind 2.7, Python 3.7, C++17 compatible compiler, cmake 3.8
+- AreaManager is now part of the Python interface
+- consistently allow str, Path, File and FileBuffer, where OSM files are expected
+- objects stay alive through handler chain allowing to carry over extra attributes
+- switch SimpleWriter to use keyword arguments
+- make Reader and SimpleWriter context managers
+- new overwrite parameter for writers
+- remove GIL release, only slows down processing
+- move documentation of C++ interface into pyi files
+- complete rewrite of documentation using mkdocs
+- update pybind to 2.13.6
+- use maximum parallelization when building (thanks @Mathiasdm)
+- move build configuration to pyproject.toml as far as possible
+
+
 ## [3.7.0] - 2023-11-19
 
 ### Added

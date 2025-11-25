@@ -10,15 +10,19 @@ on:
 
 jobs:
   make_sdist:
-    name: Make SDist
+    name: Make Source Distribution
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      # Install python to get devel headers
+      - uses: actions/setup-python@v5
+        id: cp313
         with:
-          submodules: true # we don't want submodules of libosmium
+          python-version: '3.13'
 
       - name: Build SDist
-        run: pipx run build --sdist
+        run: pipx run --python '${{ steps.cp313.outputs.python-path }}' build --sdist
 
       - uses: actions/upload-artifact@v4
         with:
@@ -31,19 +35,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, windows-2019, macos-13, macos-14]
-        cibw_build: ["cp38-*", "cp39-*", "cp310-*", "cp311-*", "cp312-*"]
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-13, macos-latest]
+        vcpkg: [none]
+        cibw_build: ["cp39-*", "cp310-*", "cp311-*", "cp312-*", "cp313-*", "cp314-*"]
         include:
-          - os: macos-13
-            deployment_target: "10.13" # minimal version required by libosmium
-        exclude:
-          - os: macos-14
-            cibw_build: "cp38-*"
+         - os: windows-latest
+           vcpkg: 'C:/vcpkg/installed/x64-windows'
+         - os: windows-11-arm
+           vcpkg: 'C:/vcpkg/installed/arm64-windows'
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: true # we don't want submodules of libosmium
 
       - uses: mad9000/actions-find-and-replace-string@5
         # Escaping '*'...
@@ -54,23 +56,21 @@ jobs:
           replace: '_'
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.19.2
+        uses: pypa/cibuildwheel@v3.3.0
         env:
+           CIBW_ENABLE: cpython-freethreading
            CIBW_ARCHS: native
            CIBW_BUILD: ${{ matrix.cibw_build }}
-           # Disable python 3.7 due to https://github.com/pypa/manylinux/pull/1532
-           CIBW_SKIP: "pp* *musllinux* cp37-*"
-           CIBW_TEST_REQUIRES: pytest pytest-httpserver shapely
-           CIBW_TEST_REQUIRES_LINUX: urllib3<2.0 pytest pytest-httpserver shapely
+           CIBW_SKIP: "*musllinux*"
+           CIBW_TEST_REQUIRES: pytest pytest-httpserver
            CIBW_TEST_COMMAND: pytest {project}/test
            CIBW_BUILD_FRONTEND: build
-           CIBW_BEFORE_BUILD_LINUX: yum install -y sparsehash-devel expat-devel boost-devel zlib-devel bzip2-devel lz4-devel
-           CIBW_ENVIRONMENT_MACOS: "MACOSX_DEPLOYMENT_TARGET=${{ matrix.deployment_target || '10.9' }}"
-           # Can't use system/brew lz4 as they do not honor MACOSX_DEPLOYMENT_TARGET 
-           # See https://cibuildwheel.pypa.io/en/stable/faq/#missing-dependencies
-           CIBW_BEFORE_BUILD_MACOS: brew install boost google-sparsehash; brew uninstall --ignore-dependencies lz4; wget https://github.com/lz4/lz4/releases/download/v1.10.0/lz4-1.10.0.tar.gz; tar xvfz lz4-1.10.0.tar.gz; cd lz4-1.10.0; make; sudo make install
-           CIBW_BEFORE_BUILD_WINDOWS: vcpkg install bzip2:x64-windows expat:x64-windows zlib:x64-windows boost-variant:x64-windows boost-iterator:x64-windows lz4:x86-windows
+           CIBW_BEFORE_BUILD_LINUX: yum install -y expat-devel boost-devel zlib-devel bzip2-devel lz4-devel
+           CIBW_BEFORE_BUILD_MACOS: brew install boost
+           CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=11.0 SKBUILD_CMAKE_ARGS=-DWITH_LZ4=OFF
+           CIBW_BEFORE_BUILD_WINDOWS: vcpkg install bzip2 expat zlib boost-variant boost-iterator lz4
            CIBW_ENVIRONMENT_WINDOWS: 'CMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"'
+           CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: 'pipx run delvewheel repair --add-path ${{ matrix.vcpkg }}/bin/ --add-path ${{ matrix.vcpkg }}/debug/bin -w {dest_dir} {wheel}'
 
       - uses: actions/upload-artifact@v4
         with:

@@ -2,7 +2,7 @@
  *
  * This file is part of pyosmium. (https://osmcode.org/pyosmium/)
  *
- * Copyright (C) 2024 Sarah Hoffmann <lonvia@denofr.de> and others.
+ * Copyright (C) 2025 Sarah Hoffmann <lonvia@denofr.de> and others.
  * For a full list of authors see the git log.
  */
 
@@ -127,29 +127,24 @@ private:
 
 } // namespace
 
+#ifdef Py_GIL_DISABLED
+PYBIND11_MODULE(area, m, py::mod_gil_not_used())
+#else
 PYBIND11_MODULE(area, m)
+#endif
 {
     py::class_<AreaManagerSecondPassHandler, pyosmium::BaseHandler>(m,
                 "AreaManagerSecondPassHandler");
     py::class_<AreaManagerBufferHandler, pyosmium::BaseHandler>(m,
                 "AreaManagerBufferHandler");
 
-    py::class_<AreaManager, pyosmium::BaseHandler>(m, "AreaManager",
-        "Object manager class that manages building area objects from "
-        "ways and relations.")
+    py::class_<AreaManager, pyosmium::BaseHandler>(m, "AreaManager")
         .def(py::init<>())
         .def("first_pass_handler", &AreaManager::first_pass_handler,
-             "Return the handler object used for the first pass of the "
-             "file, which collects information about the relations.",
              py::return_value_policy::reference)
         .def("second_pass_handler", &AreaManager::second_pass_handler,
-             "Return the handler object used for the second pass of the "
-             "file, where areas are assembled. Pass the handlers that "
-             "should handle the areas.",
              py::return_value_policy::take_ownership, py::keep_alive<1, 2>())
         .def("second_pass_to_buffer", &AreaManager::second_pass_to_buffer,
-             py::keep_alive<1, 2>(),
-             "Return a handler object for the second pass of the file. "
-             "The handler holds a buffer, which can be iterated over.")
+             py::keep_alive<1, 2>())
     ;
 }

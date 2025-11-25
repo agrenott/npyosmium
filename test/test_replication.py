@@ -1,21 +1,23 @@
-# SPDX-License-Identifier: BSD
+# SPDX-License-Identifier: BSD-2-Clause
 #
-# This file is part of Pyosmium.
+# This file is part of pyosmium. (https://osmcode.org/pyosmium/)
 #
-# Copyright (C) 2023 Sarah Hoffmann.
+# Copyright (C) 2025 Sarah Hoffmann <lonvia@denofr.de> and others.
+# For a full list of authors see the git log.
 import logging
 import time
+import uuid
 from textwrap import dedent
 
 import pytest
-
+import requests
+from helpers import CountingHandler, IDCollector, mkdate
 from werkzeug.wrappers import Response
 
-from helpers import mkdate, CountingHandler
-
-import npyosmium as o
-import npyosmium.replication.server as rserv
 import npyosmium.replication
+import npyosmium.replication.server as rserv
+
+pytestmark = [pytest.mark.thread_unsafe, pytest.mark.iterations(1)]
 
 
 @pytest.mark.parametrize("inp,outp", [
@@ -45,7 +47,7 @@ def test_get_diff_url(inp, outp):
 
 
 def test_get_newest_change_from_file(tmp_path):
-    fn = tmp_path / 'change.opl'
+    fn = tmp_path / f"{uuid.uuid4()}.opl"
     fn.write_text('n6365 v1 c63965061 t2018-10-29T03:56:07Z i8369524 ux x1 y7')
 
     val = npyosmium.replication.newest_change_from_file(str(fn))
@@ -220,6 +222,33 @@ def test_apply_diffs_count(httpserver):
         assert h.counts == [1, 1, 1, 0]
 
 
+@pytest.mark.parametrize('end_id,max_size, actual_end', [(107, None, 107),
+                                                         (None, 512, 108),
+                                                         (105, 512, 105),
+                                                         (110, 512, 108),
+                                                         (None, None, 115)])
+def test_apply_diffs_endid(httpserver, end_id, max_size, actual_end):
+    httpserver.expect_request('/state.txt').respond_with_data("""\
+        sequenceNumber=140
+        timestamp=2017-08-26T11\\:04\\:02Z
+    """)
+    for i in range(100, 141):
+        httpserver.expect_request(f'/000/000/{i}.opl')\
+                  .respond_with_data(f"r{i} M" + ",".join(f"n{i}@" for i in range(1, 3000)))
+
+    with rserv.ReplicationServer(httpserver.url_for(''), "opl") as svr:
+        res = svr.collect_diffs(101, end_id=end_id, max_size=max_size)
+
+        assert res is not None
+        assert res.id == actual_end
+        assert res.newest == 140
+
+        ids = IDCollector()
+        res.reader.apply(ids)
+
+        assert ids.relations == list(range(101, actual_end + 1))
+
+
 def test_apply_diffs_without_simplify(httpserver):
     httpserver.expect_ordered_request('/state.txt').respond_with_data("""\
         sequenceNumber=100
@@ -364,7 +393,24 @@ def test_apply_diffs_permanent_error(httpserver, caplog):
     with caplog.at_level(logging.ERROR):
         with rserv.ReplicationServer(httpserver.url_for(''), "opl") as svr:
             h = CountingHandler()
-            assert None == svr.apply_diffs(h, 100, 10000)
+            with pytest.raises(requests.HTTPError, match='404'):
+                svr.apply_diffs(h, 100, 10000)
+
+    assert 'Permanent server error' in caplog.text
+
+
+def test_apply_diffs_transient_error_first_diff(httpserver, caplog):
+    httpserver.expect_ordered_request('/state.txt').respond_with_data("""\
+        sequenceNumber=100
+        timestamp=2017-08-26T11\\:04\\:02Z
+    """)
+    httpserver.expect_request('/000/000/100.opl')\
+              .respond_with_data('not a file', status=503)
+
+    with caplog.at_level(logging.ERROR):
+        with rserv.ReplicationServer(httpserver.url_for(''), "opl") as svr:
+            h = CountingHandler()
+            assert svr.apply_diffs(h, 100, 10000) is None
             assert h.counts == [0, 0, 0, 0]
 
     assert 'Error during diff download' in caplog.text
@@ -391,7 +437,7 @@ def test_apply_diffs_permanent_error_later_diff(httpserver, caplog):
     assert 'Error during diff download' in caplog.text
 
 
-def test_apply_diffs_transient_error(httpserver, caplog):
+def test_apply_diffs_transient_error_later_diff(httpserver, caplog):
     httpserver.expect_ordered_request('/state.txt').respond_with_data("""\
         sequenceNumber=101
         timestamp=2017-08-26T11\\:04\\:02Z
@@ -413,8 +459,6 @@ def test_apply_diffs_transient_error(httpserver, caplog):
             assert h.counts == [2, 1, 0, 0]
 
     assert 'Error during diff download' not in caplog.text
-
-
 
 
 def test_apply_diffs_transient_error_permanent(httpserver, caplog):

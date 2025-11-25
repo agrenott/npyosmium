@@ -2,21 +2,28 @@
 #
 # This file is part of pyosmium. (https://osmcode.org/pyosmium/)
 #
-# Copyright (C) 2023 Sarah Hoffmann <lonvia@denofr.de> and others.
+# Copyright (C) 2025 Sarah Hoffmann <lonvia@denofr.de> and others.
 # For a full list of authors see the git log.
 """ Helper functions for change file handling. """
-from typing import NamedTuple, Optional
-import logging
 import datetime as dt
+import logging
+from typing import NamedTuple, Optional
+
 from npyosmium.io import Reader as oreader
 from npyosmium.osm import NOTHING
 
-LOG = logging.getLogger('pyosmium')
+LOG = logging.getLogger('npyosmium')
+
 
 class ReplicationHeader(NamedTuple):
+    """ Description of a replication state.
+    """
     url: Optional[str]
+    "Base URL of the replication service."
     sequence: Optional[int]
+    "ID of the change file on the server."
     timestamp: Optional[dt.datetime]
+    "Date of latest changes contained in the diff file."
 
 
 def get_replication_header(fname: str) -> ReplicationHeader:
@@ -66,7 +73,8 @@ def get_replication_header(fname: str) -> ReplicationHeader:
             ts = ts.replace(tzinfo=dt.timezone.utc)
 
         except ValueError:
-            LOG.warning("Date in OSM file header is not in ISO8601 format (e.g. 2015-12-24T08:08Z). Ignored.")
+            LOG.warning("Date in OSM file header is not in ISO8601 format"
+                        "(e.g. 2015-12-24T08:08Z). Ignored.")
             ts = None
     else:
         ts = None

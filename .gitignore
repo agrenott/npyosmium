@@ -6,3 +6,6 @@ npyosmium.egg-info
 .venv/
 .vscode/
 *.so
+.ipynb_checkpoints
+docs/data/out
+contrib/

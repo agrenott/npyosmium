@@ -2,61 +2,70 @@
 #
 # This file is part of pyosmium. (https://osmcode.org/pyosmium/)
 #
-# Copyright (C) 2023 Sarah Hoffmann <lonvia@denofr.de> and others.
+# Copyright (C) 2025 Sarah Hoffmann <lonvia@denofr.de> and others.
 # For a full list of authors see the git log.
 """ Helper functions to communicate with replication servers.
 """
-from typing import NamedTuple, Optional, Any, Iterator, cast, Mapping, Tuple
-import urllib.request as urlrequest
-from urllib.error import URLError
 import datetime as dt
+import logging
+import urllib.request as urlrequest
 from contextlib import contextmanager
 from math import ceil
+from typing import Any, Dict, Iterator, Mapping, NamedTuple, Optional, Tuple, cast
+from urllib.error import URLError
 
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 
-import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util import Retry
-
-from npyosmium import MergeInputReader, BaseHandler
+from npyosmium import BaseHandler, MergeInputReader, version
 from npyosmium import io as oio
-from npyosmium import version
 
-import logging
-
-LOG = logging.getLogger('pyosmium')
+LOG = logging.getLogger('npyosmium')
 LOG.addHandler(logging.NullHandler())
 
+
 class OsmosisState(NamedTuple):
+    """ Represents a state file of a replication server.
+    """
     sequence: int
+    "The ID of the replication change on the server."
     timestamp: dt.datetime
+    "Date until when changes are contained in the change file."
+
 
 class DownloadResult(NamedTuple):
+    """ Downloaded change.
+    """
     id: int
+    "The ID of the latest downloaded replication change on the server."
     reader: MergeInputReader
+    "[npyosmium.MergeInputReader][] with all downloaded changes."
     newest: int
+    "ID of the newest change available on the server."
+
 
 class ReplicationServer:
     """ Represents a connection to a  server that publishes replication data.
         Replication change files allow to keep local OSM data up-to-date without
         downloading the full dataset again.
 
-        `url` contains the base URL of the replication service. This is the
-        directory that contains the state file with the current state. If the
-        replication service serves something other than osc.gz files, set
-        the `diff_type` to the given file suffix.
-
         ReplicationServer may be used as a context manager. In this case, it
         internally keeps a connection to the server making downloads faster.
     """
 
     def __init__(self, url: str, diff_type: str = 'osc.gz') -> None:
+        """ Set up the connection to a replication server.
+
+            `url` contains the base URL of the replication service. This is
+            the directory that contains the state file with the current
+            state. If the replication service serves something other
+            than osc.gz files, set the `diff_type` to the given file suffix.
+        """
+
         self.baseurl = url
         self.diff_type = diff_type
-        self.extra_request_params: dict[str, Any] = dict(timeout=60, stream=True)
+        self.extra_request_params: Dict[str, Any] = dict(timeout=60, stream=True)
         self.session: Optional[requests.Session] = None
         self.retry = Retry(total=3, backoff_factor=0.5, allowed_methods={'GET'},
                            status_forcelist=[408, 429, 500, 502, 503, 504])
@@ -84,11 +93,11 @@ class ReplicationServer:
             See the `requests documentation <https://requests.readthedocs.io/en/latest/api/?highlight=get#requests.request>`_
             for possible parameters. Per default, a timeout of 60 sec is set
             and streaming download enabled.
-        """
+        """  # noqa
         self.extra_request_params[key] = value
 
     def make_request(self, url: str) -> urlrequest.Request:
-        headers = {"User-Agent" : f"npyosmium/{version.npyosmium_release}"}
+        headers = {"User-Agent": f"npyosmium/{version.npyosmium_release}"}
         return urlrequest.Request(url, headers=headers)
 
     def open_url(self, url: urlrequest.Request) -> Any:
@@ -99,7 +108,7 @@ class ReplicationServer:
             get_params = self.extra_request_params
         else:
             get_params = dict(self.extra_request_params)
-            get_params['headers'] = {k: v for k,v in url.header_items()}
+            get_params['headers'] = {k: v for k, v in url.header_items()}
 
         if self.session is not None:
             return self.session.get(url.get_full_url(), **get_params)
@@ -114,59 +123,100 @@ class ReplicationServer:
 
         return _get_url_with_session()
 
-    def collect_diffs(self, start_id: int, max_size: int = 1024) -> Optional[DownloadResult]:
+    def collect_diffs(self, start_id: int, max_size: Optional[int] = None,
+                      end_id: Optional[int] = None) -> Optional[DownloadResult]:
         """ Create a MergeInputReader and download diffs starting with sequence
-            id `start_id` into it. `max_size`
-            restricts the number of diffs that are downloaded. The download
-            stops as soon as either a diff cannot be downloaded or the
-            unpacked data in memory exceeds `max_size` kB.
+            id `start_id` into it. `end_id` optionally gives the highest
+            sequence number to download. `max_size` restricts the number of
+            diffs that are downloaded by size. If neither `end_id` nor
+            `max_size` are given, then download default to stop after 1MB.
+
+            The download stops as soon as
+            1. a diff cannot be downloaded or
+            2. the end_id (inclusive) is reached or
+            3. the unpacked data in memory exceeds `max_size` kB or,
+               when no `end_id` and `max_size` are given, 1024kB.
 
             If some data was downloaded, returns a namedtuple with three fields:
             `id` contains the sequence id of the last downloaded diff, `reader`
             contains the MergeInputReader with the data and `newest` is a
             sequence id of the most recent diff available.
 
-            Returns None if there was an error during download or no new
-            data was available.
-        """
-        left_size = max_size * 1024
-        current_id = start_id
+            Returns None if there was no new data was available.
 
+            If there is an error during the download, then the function will
+            simply return the already downloaded data. If the reported
+            error is a client error (HTTP 4xx) and happens during the download
+            of the first diff, then a ::request.HTTPError:: is raised: this
+            condition is likely to be permanent and the caller should not
+            simply retry without investigating the cause.
+        """
         # must not read data newer than the published sequence id
         # or we might end up reading partial data
         newest = self.get_state_info()
 
-        if newest is None or current_id > newest.sequence:
+        if newest is None or start_id > newest.sequence:
             return None
+
+        current_id = start_id
+        left_size: Optional[int] = None
+        if max_size is not None:
+            left_size = max_size * 1024
+        elif end_id is None:
+            left_size = 1024 * 1024
 
         rd = MergeInputReader()
 
-        while left_size > 0 and current_id <= newest.sequence:
+        while (left_size is None or left_size > 0) \
+                and (end_id is None or current_id <= end_id) \
+                and current_id <= newest.sequence:
             try:
                 diffdata = self.get_diff_block(current_id)
-            except:
-                LOG.error("Error during diff download. Bailing out.")
+            except requests.RequestException as ex:
+                if start_id == current_id \
+                        and ex.response is not None \
+                        and (ex.response.status_code % 100 == 4):
+                    # If server directly responds with a client error,
+                    # reraise the exception to signal a potentially permanent
+                    # error.
+                    LOG.error("Permanent server error: %s", ex.response)
+                    raise ex
+                # In all other cases, process whatever diffs we have and
+                # encourage a retry.
+                LOG.error("Error during diff download: %s", ex)
+                LOG.error("Bailing out.")
                 diffdata = ''
             if len(diffdata) == 0:
                 if start_id == current_id:
                     return None
                 break
 
-            left_size -= rd.add_buffer(diffdata, self.diff_type)
-            LOG.debug("Downloaded change %d. (%d kB available in download buffer)",
-                      current_id, left_size / 1024)
+            diff_size = rd.add_buffer(diffdata, self.diff_type)
+            if left_size is None:
+                LOG.debug("Downloaded change %d.", current_id)
+            else:
+                left_size -= diff_size
+                LOG.debug("Downloaded change %d. (%d kB available in download buffer)",
+                          current_id, left_size / 1024)
             current_id += 1
 
         return DownloadResult(current_id - 1, rd, newest.sequence)
 
     def apply_diffs(self, handler: BaseHandler, start_id: int,
-                    max_size: int = 1024, idx: str = "",
-                    simplify: bool = True) -> Optional[int]:
+                    max_size: Optional[int] = None,
+                    idx: str = "", simplify: bool = True,
+                    end_id: Optional[int] = None) -> Optional[int]:
         """ Download diffs starting with sequence id `start_id`, merge them
-            together and then apply them to handler `handler`. `max_size`
-            restricts the number of diffs that are downloaded. The download
-            stops as soon as either a diff cannot be downloaded or the
-            unpacked data in memory exceeds `max_size` kB.
+            together and then apply them to handler `handler`. `end_id`
+            optionally gives the highest sequence id to download. `max_size`
+            allows to restrict the amount of diffs that are downloaded.
+            Downloaded diffs are temporarily saved in memory and this parameter
+            ensures that pyosmium doesn't run out of memory. `max_size`
+            is the maximum size in kB this internal buffer may have.
+
+            If neither `end_id` nor `max_size` are given, the download is
+            restricted to a maximum size of 1MB. The download also
+            stops when the most recent diff has been processed.
 
             If `idx` is set, a location cache will be created and applied to
             the way nodes. You should be aware that diff files usually do not
@@ -186,7 +236,7 @@ class ReplicationServer:
             The function returns the sequence id of the last diff that was
             downloaded or None if the download failed completely.
         """
-        diffs = self.collect_diffs(start_id, max_size)
+        diffs = self.collect_diffs(start_id, end_id=end_id, max_size=max_size)
 
         if diffs is None:
             return None
@@ -195,19 +245,26 @@ class ReplicationServer:
 
         return diffs.id
 
-    def apply_diffs_to_file(self, infile: str, outfile: str,
-                            start_id: int, max_size: int = 1024,
+    def apply_diffs_to_file(self, infile: str, outfile: str, start_id: int,
+                            max_size: Optional[int] = None,
                             set_replication_header: bool = True,
                             extra_headers: Optional[Mapping[str, str]] = None,
-                            outformat: Optional[str] = None) -> Optional[Tuple[int, int]]:
+                            outformat: Optional[str] = None,
+                            end_id: Optional[int] = None) -> Optional[Tuple[int, int]]:
         """ Download diffs starting with sequence id `start_id`, merge them
             with the data from the OSM file named `infile` and write the result
             into a file with the name `outfile`. The output file must not yet
             exist.
 
-            `max_size` restricts the number of diffs that are downloaded. The
-            download stops as soon as either a diff cannot be downloaded or the
-            unpacked data in memory exceeds `max_size` kB.
+            `end_id` optionally gives the highest sequence id to download.
+            `max_size` allows to restrict the amount of diffs that are
+            downloaded. Downloaded diffs are saved in memory and this parameter
+            ensures that pyosmium doesn't run out of memory. `max_size`
+            is the maximum size in kB this internal buffer may have.
+
+            If neither `end_id` nor `max_size` are given, the
+            download is restricted to a maximum size of 1MB. The download also
+            stops when the most recent diff has been processed.
 
             If `set_replication_header` is true then the URL of the replication
             server and the sequence id and timestamp of the last diff applied
@@ -224,7 +281,7 @@ class ReplicationServer:
             newest available sequence id if new data has been written or None
             if no data was available or the download failed completely.
         """
-        diffs = self.collect_diffs(start_id, max_size)
+        diffs = self.collect_diffs(start_id, end_id=end_id, max_size=max_size)
 
         if diffs is None:
             return None
@@ -239,7 +296,8 @@ class ReplicationServer:
             h.set("osmosis_replication_sequence_number", str(diffs.id))
             info = self.get_state_info(diffs.id)
             if info is not None:
-                h.set("osmosis_replication_timestamp", info.timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"))
+                h.set("osmosis_replication_timestamp",
+                      info.timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"))
         if extra_headers is not None:
             for k, v in extra_headers.items():
                 h.set(k, v)
@@ -261,9 +319,9 @@ class ReplicationServer:
 
         return (diffs.id, diffs.newest)
 
-
     def timestamp_to_sequence(self, timestamp: dt.datetime,
-                              balanced_search: bool = False) -> Optional[int]:
+                              balanced_search: bool = False,
+                              limit_by_oldest_available: bool = False) -> Optional[int]:
         """ Get the sequence number of the replication file that contains the
             given timestamp. The search algorithm is optimised for replication
             servers that publish updates in regular intervals. For servers
@@ -271,8 +329,15 @@ class ReplicationServer:
             should be set to true so that a standard binary search for the
             sequence will be used. The default is good for all known
             OSM replication services.
-        """
 
+            When `limit_by_oldest_available` is set, then the function will
+            return None when the server replication does not start at 0 and
+            the given timestamp is older than the oldest available timestamp
+            on the server. Some replication servers do not keep the full
+            history and this flag avoids accidentally trying to download older
+            data. The downside is that the function will never return the
+            oldest available sequence ID when the flag is set.
+        """
         # get the current timestamp from the server
         upper = self.get_state_info()
 
@@ -289,8 +354,10 @@ class ReplicationServer:
             lower = self.get_state_info(lowerid)
 
             if lower is not None and lower.timestamp >= timestamp:
-                if lower.sequence == 0 or lower.sequence + 1 >= upper.sequence:
-                    return lower.sequence
+                if lower.sequence == 0:
+                    return 0
+                if lower.sequence + 1 >= upper.sequence:
+                    return None if limit_by_oldest_available else lower.sequence
                 upper = lower
                 lower = None
                 lowerid = 0
@@ -343,7 +410,6 @@ class ReplicationServer:
 
             if lower.sequence + 1 >= upper.sequence:
                 return lower.sequence
-
 
     def get_state_info(self, seq: Optional[int] = None, retries: int = 2) -> Optional[OsmosisState]:
         """ Downloads and returns the state information for the given
@@ -407,7 +473,6 @@ class ReplicationServer:
             # generated by urllib.request
             return cast(str, resp.read())
 
-
     def get_state_url(self, seq: Optional[int]) -> str:
         """ Returns the URL of the state.txt files for a given sequence id.
 
@@ -420,7 +485,6 @@ class ReplicationServer:
 
         return '%s/%03i/%03i/%03i.state.txt' % \
                (self.baseurl, seq / 1000000, (seq % 1000000) / 1000, seq % 1000)
-
 
     def get_diff_url(self, seq: int) -> str:
         """ Returns the URL to the diff file for the given sequence id.

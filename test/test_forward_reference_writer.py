@@ -2,13 +2,15 @@
 #
 # This file is part of pyosmium. (https://osmcode.org/pyosmium/)
 #
-# Copyright (C) 2024 Sarah Hoffmann <lonvia@denofr.de> and others.
+# Copyright (C) 2025 Sarah Hoffmann <lonvia@denofr.de> and others.
 # For a full list of authors see the git log.
+import uuid
+
 import pytest
-
-import npyosmium as o
-
 from helpers import IDCollector
+
+import npyosmium
+
 
 @pytest.fixture
 def ref_file(test_data):
@@ -31,14 +33,14 @@ class DummyNode:
 
 
 def test_simple_forward_no_back_reference(ref_file, tmp_path):
-    outfile = str(tmp_path / 'test.osm')
+    outfile = tmp_path / f"{uuid.uuid4()}.osm"
 
-    with o.ForwardReferenceWriter(outfile, ref_file, back_references=False) as writer:
+    with npyosmium.ForwardReferenceWriter(outfile, ref_file, back_references=False) as writer:
         writer.add_node(DummyNode(2))
         writer.add_node(DummyNode(99))
 
     ids = IDCollector()
-    o.apply(outfile, ids)
+    npyosmium.apply(outfile, ids)
 
     assert ids.nodes == [2, 99]
     assert ids.ways == [12]
@@ -46,17 +48,17 @@ def test_simple_forward_no_back_reference(ref_file, tmp_path):
 
 
 def test_simple_forward_with_back_reference(ref_file, tmp_path):
-    outfile = str(tmp_path / 'test.osm')
+    outfile = str(tmp_path / f"{uuid.uuid4()}.osm")
 
-    with o.ForwardReferenceWriter(outfile, ref_file) as writer:
+    with npyosmium.ForwardReferenceWriter(outfile, ref_file) as writer:
         writer.add_node(DummyNode(2))
         writer.add_node(DummyNode(99))
 
     ids = IDCollector()
 
-    for obj in o.FileProcessor(outfile)\
-                .with_filter(ids)\
-                .with_filter(o.filter.EntityFilter(o.osm.NODE)):
+    for obj in npyosmium.FileProcessor(outfile)\
+                     .with_filter(ids)\
+                     .with_filter(npyosmium.filter.EntityFilter(npyosmium.osm.NODE)):
         if obj.id in (2, 99):
             assert obj.lat == 4
             assert obj.lon == 3

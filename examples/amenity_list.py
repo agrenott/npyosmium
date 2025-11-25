@@ -9,13 +9,16 @@ Points and areas will be processed, unclosed ways will be skipped.
 This example shows how geometries from npyosmium objects can be imported
 into shapely using the WKBFactory.
 """
-import npyosmium as o
 import sys
+
 import shapely.wkb as wkblib
 
-wkbfab = o.geom.WKBFactory()
+import npyosmium
 
-class AmenityListHandler(o.SimpleHandler):
+wkbfab = npyosmium.geom.WKBFactory()
+
+
+class AmenityListHandler(npyosmium.SimpleHandler):
 
     def print_amenity(self, tags, lon, lat):
         name = tags.get('name', '')
@@ -35,9 +38,10 @@ def main(osmfile):
 
     handler = AmenityListHandler()
 
-    handler.apply_file(osmfile, filters=[o.filter.KeyFilter('amenity')])
+    handler.apply_file(osmfile, filters=[npyosmium.filter.KeyFilter('amenity')])
 
     return 0
+
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:

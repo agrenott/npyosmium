@@ -13,7 +13,7 @@ manner.
 
 ## Installation
 
-npyosmium works with Python >= 3.8. Pypy is known to not work.
+npyosmium works with Python >= 3.9. Pypy is known to not work.
 
 ### Using Pip
 
@@ -41,54 +41,56 @@ npyosmium has the following dependencies:
  * [libosmium](https://github.com/osmcode/libosmium) >= 2.16.0
  * [protozero](https://github.com/mapbox/protozero)
  * [cmake](https://cmake.org/)
- * [Pybind11](https://github.com/pybind/pybind11) >= 2.2
+ * [Pybind11](https://github.com/pybind/pybind11) >= 2.7
  * [expat](https://libexpat.github.io/)
  * [libz](https://www.zlib.net/)
  * [libbz2](https://www.sourceware.org/bzip2/)
- * [Boost](https://www.boost.org/) variant and iterator >= 1.41
- * [Python Requests](https://docs.python-requests.org/en/master/)
- * Python setuptools
- * a recent C++ compiler (Clang 3.4+, GCC 4.8+)
+ * [Boost](https://www.boost.org/) variant and iterator >= 1.70
+ * [Python Requests](https://docs.python-requests.org/)
+ * [scikit-build-core](https://scikit-build-core.readthedocs.io)
+ * a C++17-compatible compiler (Clang 13+, GCC 10+ are supported)
 
 ### Compiling from Source
 
-For libosmium, protozero and pybind11 source code, npyosmium uses git submodules in `contrib/`.
+Make sure to install the development packages for expat, libz, libbz2
+and boost.
 
-```
-git submodule init
-git submodule update
-```
+The appropriate versions for Libosmium and Protozero will be downloaded into
+the `contrib` directory when building the source package:
 
-You can also set custom locations with `LIBOSMIUM_PREFIX`, `PROTOZERO_PREFIX` and
-`PYBIND11_PREFIX` respectively.
+    python3 -m build -s
 
-
-To use a custom boost installation, set `BOOST_PREFIX`.
-
-To compile the bindings during development, you can use
-[build](https://pypa-build.readthedocs.io/en/stable/).
-On Debian/Ubuntu-like systems, install `python3-build`, then
-run:
-
-```
-sudo apt install build-essential cmake libsparsehash-dev libexpat1-dev libboost-dev zlib1g-dev libbz2-dev liblz4-dev
-pip install build
-python3 -m build -w
-```
+Alternatively, provide custom locations for these libraries by setting
+`Libosmium_ROOT` and `Protozero_ROOT`.
 
 To compile and install the bindings, run
 
-    pip install [--user] .
+    pip install .
 
 #### Using conda
 
 (Tested on MacOS)
 ```
-conda create -p .venv -c conda-forge  python=3.9 clang cmake boost
+conda create -p .venv -c conda-forge  python=3.10 clang cmake boost
 conda activate .venv/
 pip install build pytest shapely
 # Resume cloning and build as described earlier
 ```
+### Compiling for Development
+
+To compile during development, you can use the experimental
+[Editable install mode](https://scikit-build-core.readthedocs.io/en/latest/configuration/index.html#editable-installs)
+of scikit-build-core:
+
+Create a virtualenv with scikit-build-core and pybind11 preinstalled:
+
+    virtualenv /tmp/dev-venv
+    /tmp/dev-venv/bin/pip install scikit-build-core pybind11
+
+Now compile pyosmium with:
+
+    /tmp/dev-venv/bin/pip install --no-build-isolation --config-settings=editable.rebuild=true -Cbuild-dir=/tmp/build -ve.
+
 
 ## Examples
 
@@ -101,31 +103,56 @@ They are mostly ports of the examples in Libosmium and osmium-contrib.
 There is a small test suite in the test directory. This provides unit
 test for the python bindings, it is not meant to be a test suite for Libosmium.
 
-Testing requires `pytest` and `pytest-httpserver`. On Debian/Ubuntu install
-the dependencies with:
+Testing requires `pytest` and `pytest-httpserver` and optionally
+pytest-run-parallel and shapely. Install those into your dev environment:
 
-    sudo apt-get install python3-pytest python3-pytest-httpserver
+    /tmp/dev-venv/bin/pip install --no-build-isolation --config-settings=editable.rebuild=true -Cbuild-dir=build -ve.[tests]
 
 The test suite can be run with:
 
-    pytest test
+    /tmp/dev-venv/bin/pytest test
+
+To test parallel execution on free-threaded Python, run:
+
+    /tmp/dev-venv/bin/pytest test --parallel-threads 10 --iterations 100
+
+### CI/CD
+
+Relying on [act](https://nektosact.com/introduction.html) to test GitHub actions locally (to some extent).
+Install:
+- act
+- GitHub CLI (gh)
+- [gh-act extension](https://github.com/nektos/gh-act): `gh extension install nektos/gh-act`
+
+Then to test a single matrix combination:
+```
+act --artifact-server-path /tmp/artifacts --concurrent-jobs 1 --matrix os:ubuntu-22.04 --matrix 'cibw_build:cp310-*' pull_request
+```
 
 
 ## Documentation
 
-To build the documentation you need [Sphinx](http://sphinx-doc.org/)
-and the [autoprogram extension](https://pythonhosted.org/sphinxcontrib-autoprogram/)
-On Debian/Ubuntu install `python-sphinx sphinxcontrib-autoprogram`
-or `python3-sphinx python3-sphinxcontrib.autoprogram`.
+To build the documentation you need [mkdocs](https://www.mkdocs.org/)
+with the [mkdocstrings](https://mkdocstrings.github.io/)
+and [jupyter](https://github.com/danielfrg/mkdocs-jupyter) extensions
+and the [material theme](https://squidfunk.github.io/mkdocs-material/).
 
-First compile the bindings as described above and then run:
+All necessary packages can be installed via pip:
 
-    cd doc
-    make html
+    pip install npyosmium[docs]
 
-For building the man pages for the tools run:
+To build the documentation run:
 
-    cd doc
+    mkdocs build
+
+or to few it locally, you can use:
+
+    mkdocs serve
+
+Pregenerated man pages for the tools are available in `docs/man`. For rebuilding
+the man pages run:
+
+    cd docs
     make man
 
 ## Bugs and Questions
@@ -143,4 +170,6 @@ npyosmium is available under the BSD 2-Clause License. See LICENSE.TXT.
 
 ## Authors
 
-Sarah Hoffmann (lonvia@denofr.de), Aurélien Grenotton (agrenott@gmail.com)
+Upstream: Sarah Hoffmann (lonvia@denofr.de) and others. See commit logs for a full
+list.
+Fork and numpy interface: Aurélien Grenotton (agrenott@gmail.com)

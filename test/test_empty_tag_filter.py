@@ -1,17 +1,19 @@
-# SPDX-License-Identifier: BSD
+# SPDX-License-Identifier: BSD-2-Clause
 #
-# This file is part of Pyosmium.
+# This file is part of pyosmium. (https://osmcode.org/pyosmium/)
 #
-# Copyright (C) 2024 Sarah Hoffmann.
-import npyosmium as o
-
+# Copyright (C) 2025 Sarah Hoffmann <lonvia@denofr.de> and others.
+# For a full list of authors see the git log.
 import pytest
-
 from helpers import IDCollector
+
+import npyosmium
+
 
 @pytest.fixture
 def reader(opl_reader):
-    return opl_reader("""\
+    def _mk():
+        return opl_reader("""\
                n1 x1 y1
                n2 x1 y1 Tfoo=bar
                w1 Nn1,n2 Thighway=road
@@ -22,10 +24,13 @@ def reader(opl_reader):
                c223
                """)
 
+    return _mk
+
+
 def test_filter_default_config(reader):
     pre = IDCollector()
     post = IDCollector()
-    o.apply(reader, pre, o.filter.EmptyTagFilter(), post)
+    npyosmium.apply(reader(), pre, npyosmium.filter.EmptyTagFilter(), post)
 
     assert pre.nodes == [1, 2]
     assert post.nodes == [2]
@@ -40,7 +45,9 @@ def test_filter_default_config(reader):
 def test_filter_restrict_entity(reader):
     pre = IDCollector()
     post = IDCollector()
-    o.apply(reader, pre, o.filter.EmptyTagFilter().enable_for(o.osm.WAY | o.osm.RELATION), post)
+    npyosmium.apply(reader(), pre,
+                 npyosmium.filter.EmptyTagFilter().enable_for(npyosmium.osm.WAY | npyosmium.osm.RELATION),
+                 post)
 
     assert pre.nodes == [1, 2]
     assert post.nodes == [1, 2]
@@ -53,10 +60,10 @@ def test_filter_restrict_entity(reader):
 def test_filter_chained(reader):
     pre = IDCollector()
     post = IDCollector()
-    o.apply(reader, pre,
-            o.filter.EmptyTagFilter().enable_for(o.osm.NODE),
-            o.filter.EmptyTagFilter().enable_for(o.osm.WAY),
-            post)
+    npyosmium.apply(reader(), pre,
+                 npyosmium.filter.EmptyTagFilter().enable_for(npyosmium.osm.NODE),
+                 npyosmium.filter.EmptyTagFilter().enable_for(npyosmium.osm.WAY),
+                 post)
 
     assert pre.nodes == [1, 2]
     assert post.nodes == [2]

@@ -2,7 +2,7 @@
 #
 # This file is part of pyosmium. (https://osmcode.org/pyosmium/)
 #
-# Copyright (C) 2024 Sarah Hoffmann <lonvia@denofr.de> and others.
+# Copyright (C) 2025 Sarah Hoffmann <lonvia@denofr.de> and others.
 # For a full list of authors see the git log.
 from typing import Optional, Callable, TypeVar, TYPE_CHECKING
 
@@ -25,7 +25,8 @@ def make_simple_handler(node: HandlerFunc[Node] = None,
                         relation: HandlerFunc[Relation] = None,
                         area: HandlerFunc[Area] = None,
                         changeset: HandlerFunc[Changeset] = None) -> SimpleHandler:
-    """ Convenience function that creates a `SimpleHandler` from a set of
+    """ _(deprecated)_ Convenience function that creates a
+        [SimpleHandler](Handler-Processing.md#osmium.SimpleHandler) from a set of
         callback functions. Each of the parameters takes an optional callable
         that must expect a single positional parameter with the object being
         processed.
@@ -55,11 +56,12 @@ class WriteHandler(SimpleWriter):
         documentation.
     """
 
-    def __init__(self, filename: str, bufsz: int=4096*1024, filetype: str="") -> None:
+    def __init__(self, filename: str, bufsz: int = 4096*1024, filetype: str = "") -> None:
         super().__init__(filename, bufsz=bufsz, filetype=filetype)
 
 
-def _merge_apply(self: MergeInputReader, *handlers: 'HandlerLike', idx: str = '', simplify: bool = True) -> None:
+def _merge_apply(self: MergeInputReader, *handlers: 'HandlerLike',
+                 idx: str = '', simplify: bool = True) -> None:
     if idx:
         lh = NodeLocationsForWays(create_map(idx))
         lh.ignore_errors()
@@ -67,4 +69,5 @@ def _merge_apply(self: MergeInputReader, *handlers: 'HandlerLike', idx: str = ''
 
     self._apply_internal(*handlers, simplify=simplify)
 
-MergeInputReader.apply = _merge_apply # type: ignore[method-assign]
+
+MergeInputReader.apply = _merge_apply  # type: ignore[method-assign]

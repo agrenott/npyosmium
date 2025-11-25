@@ -2,20 +2,21 @@
 #
 # This file is part of pyosmium. (https://osmcode.org/pyosmium/)
 #
-# Copyright (C) 2024 Sarah Hoffmann <lonvia@denofr.de> and others.
+# Copyright (C) 2025 Sarah Hoffmann <lonvia@denofr.de> and others.
 # For a full list of authors see the git log.
 from typing import Union, List, TYPE_CHECKING
-from pathlib import Path
 
 if TYPE_CHECKING:
+    import os
     from typing_extensions import Buffer
     from ._osmium import HandlerLike
 
 from ._osmium import apply, NodeLocationsForWays
-from .io import Reader, FileBuffer
+from .io import Reader, File, FileBuffer
 from .osm import osm_entity_bits
 from .area import AreaManager
 from .index import create_map
+
 
 class SimpleHandler:
     """ The most generic of OSM data handlers. Derive your data processor
@@ -46,9 +47,9 @@ class SimpleHandler:
 
         return entities
 
-    def apply_file(self, filename: Union[str, Path],
-                   locations: bool=False, idx: str='flex_mem',
-                   filters: List['HandlerLike']=[]) -> None:
+    def apply_file(self, filename: Union[str, 'os.PathLike[str]', File],
+                   locations: bool = False, idx: str = 'flex_mem',
+                   filters: List['HandlerLike'] = []) -> None:
         """ Apply the handler to the given file. If locations is true, then
             a location handler will be applied before, which saves the node
             positions. In that case, the type of this position index can be
@@ -57,19 +58,18 @@ class SimpleHandler:
             handler for assembling multipolygons and areas from ways will
             be executed.
         """
-        self._apply_object(str(filename), locations, idx, filters)
-
+        self._apply_object(filename, locations, idx, filters)
 
     def apply_buffer(self, buffer: 'Buffer', format: str,
-                     locations: bool=False, idx: str='flex_mem',
-                     filters: List['HandlerLike']=[]) -> None:
+                     locations: bool = False, idx: str = 'flex_mem',
+                     filters: List['HandlerLike'] = []) -> None:
         """Apply the handler to a string buffer. The buffer must be a
            byte string.
         """
         self._apply_object(FileBuffer(buffer, format), locations, idx, filters)
 
-
-    def _apply_object(self, obj: Union[str, FileBuffer], locations: bool, idx: str,
+    def _apply_object(self, obj: Union[str, 'os.PathLike[str]', File, FileBuffer],
+                      locations: bool, idx: str,
                       filters: List['HandlerLike']) -> None:
         entities = self.enabled_for()
         if entities & osm_entity_bits.AREA:

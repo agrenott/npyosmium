@@ -2,19 +2,30 @@
 #
 # This file is part of pyosmium. (https://osmcode.org/pyosmium/)
 #
-# Copyright (C) 2024 Sarah Hoffmann <lonvia@denofr.de> and others.
+# Copyright (C) 2025 Sarah Hoffmann <lonvia@denofr.de> and others.
 # For a full list of authors see the git log.
-from typing import Sequence, Any, NamedTuple, Callable, Optional, Iterator, \
-                   Iterable, TYPE_CHECKING, TypeVar, Generic, Tuple, Union
 import datetime as dt
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Generic,
+    Iterable,
+    Iterator,
+    NamedTuple,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 import npyosmium.osm.mutable
-
 
 if TYPE_CHECKING:
     import npyosmium.osm._osm as cosm
 
 T_obj = TypeVar('T_obj', 'cosm.COSMNode', 'cosm.COSMWay', 'cosm.COSMRelation', 'cosm.COSMArea')
+
 
 def _make_repr(name: str, *attrs: str) -> Callable[[Any], str]:
     fmt_string = f'npyosmium.osm.{name}('\
@@ -67,7 +78,7 @@ class TagIterator:
 class TagList(Iterable[Tag]):
     """ A fixed list of tags. The list is exported as an unmutable,
         dictionary-like object where the keys are tag strings and the
-        items are :py:class:`npyosmium.osm.Tag`.
+        items are [Tags][npyosmium.osm.Tag].
     """
 
     def __init__(self, parent: 'cosm.TagContainerProtocol') -> None:
@@ -160,7 +171,7 @@ class NodeRef:
 
 class NodeRefList:
     """ A list of node references, implemented as
-        an immutable sequence of :py:class:`npyosmium.osm.NodeRef`. This class
+        an immutable sequence of [npyosmium.osm.NodeRef][]. This class
         is normally not used directly, use one of its subclasses instead.
     """
 
@@ -182,8 +193,8 @@ class NodeRefList:
     def ends_have_same_location(self) -> bool:
         """ True if the start and end node of the way are at the same location. "
             Expects that the coordinates of the way nodes have been loaded
-            (see :py:func:`npyosmium.SimpleHandler.apply_buffer` and
-            :py:func:`npyosmium.SimpleHandler.apply_file`).
+            ([SimpleHandler apply functions][npyosmium.SimpleHandler] and
+            [`FileProcessor.with_locations()`][npyosmium.FileProcessor.with_locations]).
             If the locations are not present then the function returns always true.
         """
         return self._list.ends_have_same_location(self._pyosmium_data)
@@ -214,24 +225,26 @@ class NodeRefList:
 
 class WayNodeList(NodeRefList):
     """ List of nodes in a way.
-        For its members see :py:class:`npyosmium.osm.NodeRefList`.
+        For its members see [`npyosmium.osm.NodeRefList`][].
     """
 
 
 class OuterRing(NodeRefList):
     """List of nodes in an outer ring.
-       For its members see :py:class:`npyosmium.osm.NodeRefList`.
+       For its members see [`npyosmium.osm.NodeRefList`][].
     """
+
 
 class InnerRing(NodeRefList):
     """ List of nodes in an inner ring. "
-        For its members see :py:class:`npyosmium.osm.NodeRefList`.
+        For its members see [`npyosmium.osm.NodeRefList`][].
     """
+
 
 class RelationMember:
     """ Single member of a relation.
     """
-    ref : int
+    ref: int
     "OSM ID of the object. Only unique within the type."
     type: str
     "Type of object referenced, a node, way or relation."
@@ -272,7 +285,7 @@ class MemberIterator:
 
 class RelationMemberList:
     """ An immutable  sequence of relation members
-        ":py:class:`npyosmium.osm.RelationMember`.
+        [`npyosmium.osm.RelationMember`][].
     """
 
     def __init__(self, parent: 'cosm.COSMRelation') -> None:
@@ -361,7 +374,7 @@ class OSMObject(Generic[T_obj]):
     @property
     def tags(self) -> TagList:
         """ (read-only) List of tags describing the object.
-            See :py:class:`npyosmium.osm.TagList`.
+            See [`npyosmium.osm.TagList`][].
         """
         return self._tags
 
@@ -429,7 +442,7 @@ class Node(OSMObject['cosm.COSMNode']):
     @property
     def location(self) -> 'npyosmium.osm.Location':
         """ The geographic coordinates of the node.
-            See :py:class:`npyosmium.osm.Location`.
+            See [`npyosmium.osm.Location`][].
         """
         if self._location is None:
             self._location = self._pyosmium_data.location()
@@ -441,7 +454,6 @@ class Node(OSMObject['cosm.COSMNode']):
         """ Return latitude of the node.
         """
         return self.location.lat
-
 
     @property
     def lon(self) -> float:
@@ -457,7 +469,6 @@ class Node(OSMObject['cosm.COSMNode']):
             return f'n{self.id:d}: location={self.location!s} tags={self.tags!s}'
 
         return '<node invalid>'
-
 
     __repr__ = _make_repr('Node', 'id', 'deleted', 'visible', 'version',
                           'changeset', 'uid', 'timestamp', 'user',
@@ -489,7 +500,7 @@ class Way(OSMObject['cosm.COSMWay']):
     @property
     def nodes(self) -> WayNodeList:
         """ (read-only) Ordered list of nodes.
-            See :py:class:`npyosmium.osm.WayNodeList`.
+            See [`npyosmium.osm.WayNodeList`][].
         """
         if self._nodes is None:
             self._nodes = WayNodeList(self._pyosmium_data, self._pyosmium_data.nodes())
@@ -510,8 +521,8 @@ class Way(OSMObject['cosm.COSMWay']):
     def ends_have_same_location(self) -> bool:
         """ True if the start and end node of the way are at the same location.
             Expects that the coordinates of the way nodes have been loaded
-            (see :py:func:`npyosmium.SimpleHandler.apply_buffer` and
-            :py:func:`npyosmium.SimpleHandler.apply_file`).
+            (see [SimpleHandler apply functions][npyosmium.SimpleHandler] and
+            [`FileProcessor.with_locations()`][npyosmium.FileProcessor.with_locations])
             If the locations are not present then the function returns always true.
         """
         return self._pyosmium_data.ends_have_same_location()
@@ -555,14 +566,7 @@ class Relation(OSMObject['cosm.COSMRelation']):
     @property
     def members(self) -> RelationMemberList:
         """(read-only) Ordered list of relation members.
-           See :py:class:`npyosmium.osm.RelationMemberList`.
-        """
-        return self._members
-
-    @property
-    def members(self) -> RelationMemberList:
-        """(read-only) Ordered list of relation members.
-           See :py:class:`npyosmium.osm.RelationMemberList`.
+           See [`npyosmium.osm.RelationMemberList`][].
         """
         return self._members
 
@@ -573,7 +577,7 @@ class Relation(OSMObject['cosm.COSMRelation']):
         if self._pyosmium_data.is_valid():
             return f"r{self.id:d}: members={self.members!s}, tags={self.tags!s}"
 
-        return f"<relation invalid>"
+        return '<relation invalid>'
 
     __repr__ = _make_repr('Relation', 'id', 'deleted', 'visible', 'version',
                                       'changeset', 'uid', 'timestamp', 'user',
@@ -642,7 +646,7 @@ class Area(OSMObject['cosm.COSMArea']):
         """
         return self._pyosmium_data.is_multipolygon()
 
-    def num_rings(self) -> Tuple[int,int]:
+    def num_rings(self) -> Tuple[int, int]:
         """ Return a tuple with the number of outer rings and inner rings.
 
             This function goes through all rings to count them.
@@ -666,7 +670,7 @@ class Area(OSMObject['cosm.COSMArea']):
         if self._pyosmium_data.is_valid():
             return f"a{self.id:d}: num_rings={self.num_rings()}, tags={self.tags!s}"
 
-        return f"<area invalid>"
+        return '<area invalid>'
 
     __repr__ = _make_repr('Area', 'id', 'deleted', 'visible', 'version',
                                   'changeset', 'uid', 'timestamp', 'user',
@@ -742,7 +746,7 @@ class Changeset:
     @property
     def tags(self) -> TagList:
         """ (read-only) List of tags describing the object.
-            See :py:class:`npyosmium.osm.TagList`.
+            See [`npyosmium.osm.TagList`][].
         """
         return self._tags
 
@@ -758,13 +762,14 @@ class Changeset:
 
     def __str__(self) -> str:
         if self._pyosmium_data.is_valid():
-            return f'c{self.id:d}: closed_at={self.closed_at!s}, bounds={self.bounds!s}, tags={self.tags!s}'
+            return f"c{self.id:d}: closed_at={self.closed_at!s}, " \
+                f"bounds={self.bounds!s}, tags={self.tags!s}"
 
-        return f"<changeset invalid>"
+        return '<changeset invalid>'
 
-    __repr__ =  _make_repr('Changeset', 'id', 'uid', 'created_at', 'closed_at',
-                                        'open', 'num_changes', 'bounds', 'user',
-                                        'tags')
+    __repr__ = _make_repr('Changeset', 'id', 'uid', 'created_at', 'closed_at',
+                                       'open', 'num_changes', 'bounds', 'user',
+                                       'tags')
 
 
 OSMEntity = Union[Node, Way, Relation, Area, Changeset]
