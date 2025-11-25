@@ -30,19 +30,21 @@ jobs:
           path: dist/*.tar.gz
 
   build_wheels:
-    name: Build ${{ matrix.cibw_build }} wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: Build ${{ matrix.cibw_build }} wheels on ${{ matrix.os.name }}
+    runs-on: ${{ matrix.os.name }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm, macos-13, macos-latest]
-        vcpkg: [none]
+        os: 
+          - name: ubuntu-latest
+          - name: ubuntu-24.04-arm
+          - name: macos-13
+          - name: macos-latest
+          - name: windows-latest
+            vcpkg: 'C:/vcpkg/installed/x64-windows'
+          - name: windows-11-arm
+            vcpkg: 'C:/vcpkg/installed/arm64-windows'
         cibw_build: ["cp39-*", "cp310-*", "cp311-*", "cp312-*", "cp313-*", "cp314-*"]
-        include:
-         - os: windows-latest
-           vcpkg: 'C:/vcpkg/installed/x64-windows'
-         - os: windows-11-arm
-           vcpkg: 'C:/vcpkg/installed/arm64-windows'
 
     steps:
       - uses: actions/checkout@v4
@@ -51,7 +53,7 @@ jobs:
         # Escaping '*'...
         id: articafact_name
         with:
-          source: cibw-wheels-${{ matrix.os }}-${{ matrix.cibw_build }}
+          source: cibw-wheels-${{ matrix.os.name }}-${{ matrix.cibw_build }}
           find: '*'
           replace: '_'
 
@@ -70,7 +72,7 @@ jobs:
            CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=11.0 SKBUILD_CMAKE_ARGS=-DWITH_LZ4=OFF
            CIBW_BEFORE_BUILD_WINDOWS: vcpkg install bzip2 expat zlib boost-variant boost-iterator lz4
            CIBW_ENVIRONMENT_WINDOWS: 'CMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"'
-           CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: 'pipx run delvewheel repair --add-path ${{ matrix.vcpkg }}/bin/ --add-path ${{ matrix.vcpkg }}/debug/bin -w {dest_dir} {wheel}'
+           CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: 'pipx run delvewheel repair --add-path ${{ matrix.os.vcpkg }}/bin/ --add-path ${{ matrix.os.vcpkg }}/debug/bin -w {dest_dir} {wheel}'
 
       - uses: actions/upload-artifact@v4
         with:
