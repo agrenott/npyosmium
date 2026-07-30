@@ -1,8 +1,8 @@
-.TH PYOSMIUM\-UP\-TO\-DATE "1" "2025\-10\-05" "pyosmium" "Generated Python Manual"
+.TH NPYOSMIUM\-UP\-TO\-DATE "1" "2026\-07\-30" "npyosmium 4.3.1" "Generated Python Manual"
 .SH NAME
-pyosmium\-up\-to\-date
+npyosmium\-up\-to\-date
 .SH SYNOPSIS
-.B pyosmium\-up\-to\-date
+.B npyosmium\-up\-to\-date
 [options] <osm file>
 .SH DESCRIPTION
 Update an OSM file with changes from a OSM replication server.
@@ -17,7 +17,7 @@ take into account that processing the files requires additional memory
 The starting time is automatically determined from the data in the file.
 For PBF files, it is also possible to read and write the replication
 information from the osmosis headers. That means that after the first update,
-subsequent calls to pyosmium\-up\-to\-date will continue the updates from the same
+subsequent calls to npyosmium\-up\-to\-date will continue the updates from the same
 server exactly where they have left of.
 
 This program can update normal OSM data files as well as OSM history files.
@@ -30,8 +30,8 @@ because the size limit has been reached or there was a network error which
 could not be resolved). Any other error results in a return code larger than 1.
 The output file is guaranteed to be unmodified in that case.
 
-Some OSM data sources require a cookie to be sent with the HTTP requests.
-pyosmium\-up\-to\-date does not fetch the cookie from these services for you.
+Some OSM data sources require a cookie to be sent with the HTTP requests. 
+npyosmium\-up\-to\-date does not fetch the cookie from these services for you.
 However, it can read cookies from a Netscape\-style cookie jar file, send these
 cookies to the server and will save received cookies to the jar file.
 
@@ -102,13 +102,13 @@ show program's version number and exit
 
 .SH AUTHOR
 .nf
-Sarah Hoffmann
+Sarah Hoffmann and Aurélien Grenotton
 .fi
 .nf
-lonvia@denofr.de
+agrenott@gmail.com
 .fi
 
 .SH DISTRIBUTION
-The latest version of pyosmium may be downloaded from
-.UR https://github.com/osmcode/pyosmium/
+The latest version of npyosmium may be downloaded from
+.UR https://github.com/agrenott/npyosmium/
 .UE

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15...4.0)
+cmake_minimum_required(VERSION 3.15)
 cmake_policy(VERSION 3.15)
 project(npyosmium LANGUAGES CXX)
 
@@ -15,7 +15,7 @@ include(FetchContent)
 
 FetchContent_Declare(libosmium
                      GIT_REPOSITORY https://github.com/osmcode/libosmium
-                     GIT_TAG 85aa0ec170d99b432d29a372554b27491d28065e # release 2.22.0
+                     GIT_TAG 97dccf105391d410701ae8bd52170dc0ee041373 # release 2.23.1
                      SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/contrib/libosmium
                      SOURCE_SUBDIR cmake
                      GIT_SUBMODULES_RECURSE OFF)
@@ -53,9 +53,6 @@ if(NOT "${CMAKE_CXX_STANDARD}")
 endif()
 
 message(STATUS "Building in C++${CMAKE_CXX_STANDARD} mode")
-
-find_package(Boost 1.66 REQUIRED COMPONENTS)
-include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
 # Modules without any Python code and just one source file.
 foreach(PYMOD geom index io area)

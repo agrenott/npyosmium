@@ -37,6 +37,7 @@ from textwrap import dedent as msgfmt
 from typing import List
 
 from .. import SimpleWriter
+from .. import io as oio
 from ..replication import server as rserv
 from ..version import npyosmium_release
 from .common import ReplicationStart
@@ -179,10 +180,11 @@ def pyosmium_get_changes(args: List[str]) -> int:
 
         log.debug("Starting download at ID %d (max %f MB)"
                   % (startseq, options.outsize or float('inf')))
+
         if options.outformat is not None:
-            outhandler = SimpleWriter(options.outfile, filetype=options.outformat)
+            outfile = oio.File(options.outfile, options.outformat)
         else:
-            outhandler = SimpleWriter(options.outfile)
+            outfile = options.outfile
 
         if options.outsize is not None:
             max_size = options.outsize * 1024
@@ -199,9 +201,9 @@ def pyosmium_get_changes(args: List[str]) -> int:
                 log.error("Cannot find the end date/ID on the server.")
                 return 1
 
-        endseq = svr.apply_diffs(outhandler, startseq, max_size=max_size,
-                                 end_id=end_id, simplify=options.simplify)
-        outhandler.close()
+        with SimpleWriter(outfile) as outhandler:
+            endseq = svr.apply_diffs(outhandler, startseq, max_size=max_size,
+                                     end_id=end_id, simplify=options.simplify)
 
     # save cookies
     if options.cookie:
