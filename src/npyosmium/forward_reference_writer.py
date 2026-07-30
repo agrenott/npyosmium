@@ -2,7 +2,7 @@
 #
 # This file is part of pyosmium. (https://osmcode.org/pyosmium/)
 #
-# Copyright (C) 2024 Sarah Hoffmann <lonvia@denofr.de> and others.
+# Copyright (C) 2025 Sarah Hoffmann <lonvia@denofr.de> and others.
 # For a full list of authors see the git log.
 import os
 from pathlib import Path
@@ -12,8 +12,7 @@ from typing import Any, Optional, Union
 from npyosmium import IdTracker
 from npyosmium._osmium import SimpleWriter
 from npyosmium.file_processor import FileProcessor, zip_processors
-from npyosmium.io import File, FileBuffer
-
+from npyosmium.io import File, FileBuffer, ThreadPool
 
 
 class ForwardReferenceWriter:
@@ -33,7 +32,8 @@ class ForwardReferenceWriter:
                  ref_src: Union[str, 'os.PathLike[str]', File, FileBuffer],
                  overwrite: bool = False, back_references: bool = True,
                  remove_tags: bool = True, forward_relation_depth: int = 0,
-                 backward_relation_depth: int = 1) -> None:
+                 backward_relation_depth: int = 1,
+                 thread_pool: Optional[ThreadPool] = None) -> None:
         """ Create a new writer.
 
             `outfile` is the name of the output file to write. The file must
@@ -52,8 +52,10 @@ class ForwardReferenceWriter:
             to which relations shall be completed.
         """
         self.outfile = outfile
-        self.tmpdir: Optional['TemporaryDirectory[Any]'] = TemporaryDirectory()
-        self.writer = SimpleWriter(str(Path(self.tmpdir.name, 'forward_writer.osm.pbf')))
+        self.tmpdir: Optional[TemporaryDirectory[Any]] = TemporaryDirectory()
+        self.thread_pool = thread_pool or ThreadPool()
+        self.writer = SimpleWriter(Path(self.tmpdir.name, 'forward_writer.osm.pbf'),
+                                   thread_pool=self.thread_pool)
         self.overwrite = overwrite
         self.back_references = back_references
         self.id_tracker = IdTracker()
@@ -119,10 +121,13 @@ class ForwardReferenceWriter:
                     self.ref_src,
                     relation_depth=self.backward_relation_depth)
 
-            fp1 = FileProcessor(Path(self.tmpdir.name, 'forward_writer.osm.pbf'))
-            fp2 = FileProcessor(self.ref_src).with_filter(self.id_tracker.id_filter())
+            fp1 = FileProcessor(Path(self.tmpdir.name, 'forward_writer.osm.pbf'),
+                                thread_pool=self.thread_pool)
+            fp2 = FileProcessor(self.ref_src, thread_pool=self.thread_pool
+                                ).with_filter(self.id_tracker.id_filter())
 
-            with SimpleWriter(self.outfile, overwrite=self.overwrite) as writer:
+            with SimpleWriter(self.outfile, overwrite=self.overwrite,
+                              thread_pool=self.thread_pool) as writer:
                 for o1, o2 in zip_processors(fp1, fp2):
                     if o1:
                         writer.add(o1)

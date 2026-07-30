@@ -14,6 +14,12 @@ manner.
 ## Installation
 
 npyosmium works with Python >= 3.9. Pypy is known to not work.
+npyosmium works with Python >= 3.9. Pypy is known to not work. Support for
+free-threading Python is currently in an experimental state.
+
+Compiling and using npyosmium on 32bit architectures still works but is
+not officially supported anymore. There are known issues around working
+with large OSM IDs on 32bit systems.
 
 ### Using Pip
 
@@ -21,15 +27,14 @@ The recommended way to install npyosmium is via pip:
 
     pip install npyosmium
 
-We provide binary wheels for Linux and Windows 64 for all actively
-maintained Python versions.
+We provide binary wheels for Linux, MacOS and Windows 64bit architectures
+for all actively maintained Python versions.
 
 For other versions, a source wheel is provided. Make sure to install all
 external dependencies first. On Debian/Ubuntu-like systems, the following
 command installs all required packages:
 
-    sudo apt-get install build-essential cmake libboost-dev \
-                         libexpat1-dev zlib1g-dev libbz2-dev
+    sudo apt-get install build-essential cmake libexpat1-dev zlib1g-dev libbz2-dev
 
 
 ### Installing from source
@@ -39,21 +44,21 @@ command installs all required packages:
 npyosmium has the following dependencies:
 
  * [libosmium](https://github.com/osmcode/libosmium) >= 2.16.0
+   (versions 2.21.0 to 2.23.0 have a known issue when processing extract diffs)
  * [protozero](https://github.com/mapbox/protozero)
  * [cmake](https://cmake.org/)
  * [Pybind11](https://github.com/pybind/pybind11) >= 2.7
  * [expat](https://libexpat.github.io/)
  * [libz](https://www.zlib.net/)
  * [libbz2](https://www.sourceware.org/bzip2/)
- * [Boost](https://www.boost.org/) variant and iterator >= 1.70
  * [Python Requests](https://docs.python-requests.org/)
  * [scikit-build-core](https://scikit-build-core.readthedocs.io)
  * a C++17-compatible compiler (Clang 13+, GCC 10+ are supported)
 
+
 ### Compiling from Source
 
-Make sure to install the development packages for expat, libz, libbz2
-and boost.
+Make sure to install the development packages for expat, libz and libbz2.
 
 The appropriate versions for Libosmium and Protozero will be downloaded into
 the `contrib` directory when building the source package:

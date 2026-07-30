@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "npyosmium"
-version = "4.2.0"
+version = "4.3.1"
 description = "Python bindings for libosmium, the data processing library for OSM data, with numpy interface"
 requires-python = ">=3.9"
 readme = "README.md"

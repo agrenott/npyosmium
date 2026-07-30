@@ -19,7 +19,7 @@ import npyosmium
 def test_writer(tmp_path):
     @contextmanager
     def _WriteExpect(filename, expected):
-        with npyosmium.SimpleWriter(str(filename), 1024*1024) as writer:
+        with npyosmium.SimpleWriter(filename, 1024*1024) as writer:
             yield writer
 
         assert filename.read_text().strip() == expected
@@ -31,7 +31,7 @@ def test_writer(tmp_path):
     return _create
 
 
-class O:  # noqa: E742
+class O:
     def __init__(self, **params):
         for k, v in params.items():
             setattr(self, k, v)
@@ -382,4 +382,11 @@ def test_write_to_file(tmp_path):
     test_file = tmp_path / f"{uuid.uuid4()}.txt"
 
     with npyosmium.SimpleWriter(npyosmium.io.File(test_file, 'opl'), bufsz=4000) as writer:
+        writer.add_node(npyosmium.osm.mutable.Node(id=123))
+
+
+def test_write_with_pool(tmp_path):
+    test_file = tmp_path / f"{uuid.uuid4()}.opl"
+
+    with npyosmium.SimpleWriter(test_file, bufsz=400, thread_pool=npyosmium.io.ThreadPool()) as writer:
         writer.add_node(npyosmium.osm.mutable.Node(id=123))
